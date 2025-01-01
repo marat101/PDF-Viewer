@@ -10,24 +10,30 @@ import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.util.VelocityTracker
+import ru.marat.pdf_reader.layout.state.PagePosition
 
 @Stable
 class ReaderLayoutPositionState(
     offsetFraction: Float,
     previousOffset: Offset? = null,
+    prevFirstVisiblePageIndex: Int = 0,
 ) {
+    internal var firstVisiblePageIndex = prevFirstVisiblePageIndex
+
     var offset by mutableStateOf(previousOffset ?: Offset.Zero)
         private set
 
     var layoutHeight by mutableFloatStateOf(0f)
         private set
 
-    private val velocityTracker = VelocityTracker()
+    var pagePositions by mutableStateOf<List<PagePosition>>(emptyList())
+        internal set
 
     internal var scrollOffsetFraction by mutableFloatStateOf(offsetFraction)
         private set
+
+    private val velocityTracker = VelocityTracker()
 
     fun onOffsetChange(
 //        timeMillis: Long,
@@ -35,15 +41,15 @@ class ReaderLayoutPositionState(
     ) {
         offset = Offset(
             offset.x,
-            (offset.y + offsetChange.y).coerceIn(-layoutHeight,0f)
+            (offset.y + offsetChange.y).coerceIn(-layoutHeight, 0f)
         )
-        println(layoutHeight)
-        scrollOffsetFraction = offset.y / layoutHeight
-        println("$offset $offsetChange")
-//        velocityTracker.addPosition(timeMillis, newOffset)
+
+        scrollOffsetFraction = offset.y / layoutHeight //todo
     }
 
-    fun onViewportSizeChanged(newSize: Size, newLayoutHeight: Float) {
+    fun onPagesPositionsChanged(
+        newLayoutHeight: Float,
+    ) {
         layoutHeight = newLayoutHeight
         offset = Offset(0f, scrollOffsetFraction * layoutHeight)
     }
