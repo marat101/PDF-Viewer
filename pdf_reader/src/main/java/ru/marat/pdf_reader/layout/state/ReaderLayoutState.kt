@@ -3,6 +3,7 @@ package ru.marat.pdf_reader.layout.state
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -10,13 +11,15 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
 import androidx.compose.ui.geometry.isUnspecified
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.util.fastForEach
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
@@ -39,46 +42,33 @@ class ReaderLayoutState internal constructor(
         get() = pdfInfo?.pageCount ?: 0
 
     private val scope = CoroutineScope(Dispatchers.IO)
+
     var loadingState by mutableStateOf<LoadingState>(LoadingState.Loading(0f))
         private set
 
     private var _viewportSize = mutableStateOf(Size.Unspecified)
     var viewportSize
         get() = _viewportSize.value
-        internal set(value) {
-            if (_viewportSize.value == value &&
-                pagePositions.isNotEmpty() &&
-                viewportSize.isSpecified
-            ) return
-            val positions = mutableListOf<PagePosition>()
-            var offset = 0f
-            pages.fastForEach {
-                val pos = PagePosition(
-                    index = it.index,
-                    start = offset,
-                    end = (value.width * it.ratio) + offset
-                )
-                offset += pos.end - pos.start
-                positions.add(pos)
-            }
-            pagePositions = positions
+        private set(value) {
             _viewportSize.value = value
-            scrollState.onViewportSizeChanged(
-                value,
-                (offset - value.height).coerceAtLeast(0f)
-            )
         }
-
-    var pagePositions by mutableStateOf<List<PagePosition>>(emptyList())
-        private set
+    private var spacing = 0f
 
     var pages by mutableStateOf<List<Page>>(emptyList())
         private set
 
+    val loadedPages by derivedStateOf {
+        if (viewportSize.isUnspecified) return@derivedStateOf emptyList()
+        scrollState.pagePositions.filter {
+            val r = viewportSize.toRect()
+                .translate(0f, -scrollState.offset.y)
+            r.overlaps(Rect(0f, it.start, 1f, it.end))
+        }
+    }
+
     init {
         scope.launch {
             pdfInfo = pdfInfoProvider.get()
-//            println("")
             var counter = 0
             val p = savedPages?.map {
                 Page(
@@ -99,14 +89,47 @@ class ReaderLayoutState internal constructor(
                 }
             }
             withContext(Dispatchers.Main.immediate) {
-                this@ReaderLayoutState.pages = p
+                pages = p
                 loadingState = LoadingState.Ready
             }
         }
     }
 
+    fun setSpacing(spacing: Float) {
+        if (viewportSize.isUnspecified) return
+        this.spacing = spacing
+        calculatePositions()
+    }
+
+    fun setLayoutViewportSize(size: Size) {
+        if ((_viewportSize.value == size && scrollState.pagePositions.isNotEmpty()) ||
+            size.isUnspecified
+        ) return
+        calculatePositions(size)
+        viewportSize = size
+    }
+
+    private fun calculatePositions(newViewportSize: Size = viewportSize) {
+        val positions = mutableListOf<PagePosition>()
+        var offset = 0f
+        pages.fastForEach {
+            val pos = PagePosition(
+                index = it.index,
+                start = offset,
+                end = (newViewportSize.width * it.ratio) + offset
+            )
+            offset += (pos.end - pos.start) + if (it.index == pages.lastIndex) 0f else spacing
+            positions.add(pos)
+        }
+        scrollState.pagePositions = positions
+        scrollState.onPagesPositionsChanged(
+            (offset - newViewportSize.height).coerceAtLeast(0f),
+        )
+    }
+
 
     fun onDispose() {
+        scope.cancel()
         pages.forEach { it.onDispose() }
         pdfInfo?.close()
     }
@@ -115,13 +138,13 @@ class ReaderLayoutState internal constructor(
 internal class ReaderSaver(
     private val provider: PdfInfoProvider,
     private val scrollState: ReaderLayoutPositionState
-) :
-    Saver<ReaderLayoutState, List<List<Any>>> {
+) : Saver<ReaderLayoutState, List<List<Any>>> {
     override fun restore(value: List<List<Any>>): ReaderLayoutState {
+        val savedPages = value.map { PageData(it[0] as Int, it[1] as Float) }
         return ReaderLayoutState(
             scrollState = scrollState,
             pdfInfoProvider = provider,
-            savedPages = value.map { PageData(it[0] as Int, it[1] as Float) }
+            savedPages = if (savedPages.isEmpty()) null else savedPages
         )
     }
 
@@ -147,7 +170,7 @@ fun rememberReaderLayoutState(
 ): ReaderLayoutState {
     val context = LocalContext.current
     val pdfInfo = remember(uri) { AndroidPdfInfoProvider(context, uri) }
-    val scrollState = rememberReaderLayoutPositionState()
+    val scrollState = rememberReaderLayoutPositionState(pdfInfo)
     return rememberSaveable(
         inputs = arrayOf(pdfInfo),
         saver = ReaderSaver(pdfInfo, scrollState)

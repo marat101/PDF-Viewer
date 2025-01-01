@@ -34,6 +34,7 @@ fun MainScreen() {
     var uri by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     var ofs by remember { mutableFloatStateOf(0f) }
+//    var spacing by remember { mutableFloatStateOf(8f) }
 //    val height = remember { Animatable(0.1f) }
     Column(
         modifier = Modifier
@@ -70,6 +71,7 @@ fun MainScreen() {
                                 style = Stroke(width = 4.dp.toPx())
                             )
                     },
+//                spacing = spacing.dp,
                 state = state
             ) {
                 ofs = it
@@ -79,6 +81,7 @@ fun MainScreen() {
 //    LaunchedEffect(uri) {
 //        if (uri == null) return@LaunchedEffect
 //        delay(4000)
+//        spacing = 20f
 //        height.animateTo(1f)
 //    }
 }
