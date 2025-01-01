@@ -1,10 +1,13 @@
 package ru.marat.pdf_reader.utils.pdf_info
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.utils.render.AndroidPageRenderer
 import ru.marat.pdf_reader.utils.render.PageRenderer
@@ -22,7 +25,9 @@ class AndroidPdfInfo private constructor(
             }
     }
 
-    override val pageRenderer: PageRenderer = AndroidPageRenderer(renderer)
+    private val mutex = Mutex()
+
+    override val pageRenderer: PageRenderer = AndroidPageRenderer(mutex, renderer)
     override val pageCount: Int = renderer.pageCount
 
     override fun getPageAspectRatio(index: Int): Float {
@@ -33,7 +38,11 @@ class AndroidPdfInfo private constructor(
     }
 
     override fun close() {
-        renderer.close()
+        CoroutineScope(Dispatchers.Default).launch {
+            mutex.withLock {
+                renderer.close()
+            }
+        }
     }
 }
 
@@ -42,7 +51,4 @@ class AndroidPdfInfoProvider(
     private val uri: Uri
 ) : PdfInfoProvider {
     override suspend fun get(): PdfInfo = AndroidPdfInfo.create(context, uri)
-    override fun toString(): String {
-        return uri.toString()
-    }
 }

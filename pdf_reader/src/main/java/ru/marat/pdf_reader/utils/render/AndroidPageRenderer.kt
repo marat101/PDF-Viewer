@@ -14,10 +14,10 @@ import ru.marat.viewplayground.pdf_reader.reader.layout.items.ScaledPage
 import kotlin.math.roundToInt
 
 class AndroidPageRenderer(
+    private val mutex: Mutex,
     private val pdfRenderer: PdfRenderer
 ) : PageRenderer {
 
-    private val mutex = Mutex()
     private val matrix = Matrix()
 
     override suspend fun renderPage(

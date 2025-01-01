@@ -24,9 +24,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 
 @Composable
-fun MainToolbar(onGetFileUri: (Uri) -> Unit) {
+fun MainToolbar(
+    offsetY: Float,
+    onGetFileUri: (Uri) -> Unit
+) {
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues()
     var visible by remember { mutableStateOf(false) }
     Row(
@@ -35,7 +40,8 @@ fun MainToolbar(onGetFileUri: (Uri) -> Unit) {
             .padding(top = statusBarPadding.calculateTopPadding())
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .height(65.dp),
+            .height(65.dp)
+            .zIndex(1f),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier
@@ -57,5 +63,6 @@ fun MainToolbar(onGetFileUri: (Uri) -> Unit) {
             PdfSelectionPopUp(
                 onGetFileUri = onGetFileUri
             ) { visible = false }
+        Text("offset:\n${offsetY.roundToInt()}")
     }
 }

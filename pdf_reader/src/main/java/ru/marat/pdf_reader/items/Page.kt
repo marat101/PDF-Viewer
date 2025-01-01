@@ -69,24 +69,12 @@ class Page(
         job = null
         scalingJob?.cancel()
         scalingJob = null
-        closePageAndRecycleBitmaps()
-    }
-
-    internal fun close() {
-        job?.cancel()
-        job = null
-        scalingJob?.cancel()
-        scalingJob = null
-        closePageAndRecycleBitmaps()
-    }
-
-    private fun closePageAndRecycleBitmaps() {
         scaledPage = null
         bitmap = null
     }
 }
 
-class ScaledPage private constructor( //todo
+class ScaledPage private constructor( //todo constructor
     val rect: Rect,
     val topLeft: Offset,
     internal val bitmap: ImageBitmap,

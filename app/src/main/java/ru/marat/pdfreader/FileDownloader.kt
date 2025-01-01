@@ -53,7 +53,7 @@ object FileDownloader {
                 val size = response.contentLength() ?: 0L
                 var dBytes = 0L
                 while (!channel.isClosedForRead) {
-                    val packet = channel.readRemaining(limit = 5000000)
+                    val packet = channel.readRemaining(limit = 4_096)
                     while (!packet.isEmpty) {
                         val bytes = packet.readBytes()
                         file.appendBytes(bytes)
