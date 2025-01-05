@@ -28,10 +28,12 @@ import ru.marat.pdf_reader.utils.pdf_info.AndroidPdfInfoProvider
 import ru.marat.pdf_reader.utils.pdf_info.PdfInfo
 import ru.marat.pdf_reader.utils.pdf_info.PdfInfoProvider
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
+import kotlin.math.max
+import kotlin.math.min
 
 @Stable
 class ReaderLayoutState internal constructor(
-    internal val scrollState: ReaderLayoutPositionState,
+    val scrollState: ReaderLayoutPositionState,
     pdfInfoProvider: PdfInfoProvider,
     savedPages: List<PageData>? = null
 ) {
@@ -61,7 +63,7 @@ class ReaderLayoutState internal constructor(
         if (viewportSize.isUnspecified) return@derivedStateOf emptyList()
         scrollState.pagePositions.filter {
             val r = viewportSize.toRect()
-                .translate(0f, -scrollState.offset.y)
+                .translate(0f, -scrollState.offsetY)
             r.overlaps(Rect(0f, it.start, 1f, it.end))
         }
     }
@@ -96,7 +98,7 @@ class ReaderLayoutState internal constructor(
     }
 
     fun setSpacing(spacing: Float) {
-        if (viewportSize.isUnspecified) return
+        if (viewportSize.isUnspecified || this.spacing == spacing) return
         this.spacing = spacing
         calculatePositions()
     }
@@ -122,8 +124,9 @@ class ReaderLayoutState internal constructor(
             positions.add(pos)
         }
         scrollState.pagePositions = positions
+        val layoutHeight = offset - newViewportSize.height
         scrollState.onPagesPositionsChanged(
-            (offset - newViewportSize.height).coerceAtLeast(0f),
+            if (layoutHeight < 0f) 0f else layoutHeight,
         )
     }
 
