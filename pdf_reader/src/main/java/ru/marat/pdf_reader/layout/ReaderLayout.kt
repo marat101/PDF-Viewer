@@ -1,15 +1,11 @@
 package ru.marat.pdf_reader.layout
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.rememberScrollableState
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.lazy.layout.LazyLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -18,7 +14,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
-import ru.marat.pdf_reader.layout.state.LoadingState
+import ru.marat.pdf_reader.gestures.readerGestures
 import ru.marat.pdf_reader.layout.state.ReaderLayoutState
 import kotlin.math.roundToInt
 
@@ -28,16 +24,8 @@ fun ReaderLayout(
     modifier: Modifier = Modifier,
     state: ReaderLayoutState,
     spacing: Dp = 8.dp,
-    offsetChange: (Float) -> Unit = {},
 ) {
     val itemProvider = rememberPagesItemProvider(state.pages)
-    val scrollstate = rememberScrollableState {
-        if (state.loadingState is LoadingState.Loading)
-            return@rememberScrollableState 0f
-        state.scrollState.onOffsetChange(Offset(0f, it))
-        offsetChange(state.scrollState.offset.y)
-        it
-    }
 
     LazyLayout(
         modifier = modifier
@@ -50,7 +38,7 @@ fun ReaderLayout(
                     )
                 )
             }
-            .scrollable(scrollstate, orientation = Orientation.Vertical),
+            .readerGestures(state.scrollState),
         itemProvider = { itemProvider }
     ) { constraints: Constraints ->
         val items = if (state.pages.isNotEmpty()) state.loadedPages.fastMap { //todo
@@ -73,9 +61,10 @@ fun ReaderLayout(
                 )
             )
             items.fastForEach { (pos, placeables) ->
+                println("${state.scrollState.offsetY} ${pos.start}")
                 placeables.firstOrNull()?.placeRelative(
-                    0,
-                    (state.scrollState.offset.y + pos.start).roundToInt()
+                    state.scrollState.offsetX.roundToInt(),
+                    (state.scrollState.offsetY + pos.start).roundToInt()
                 )
             }
         }
