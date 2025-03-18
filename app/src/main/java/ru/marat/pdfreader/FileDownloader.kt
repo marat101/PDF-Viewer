@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.client.request.prepareGet
@@ -24,11 +25,14 @@ import java.io.File
 import java.io.FileInputStream
 
 object FileDownloader {
-    private val client = HttpClient(OkHttp) {
-        Logging {
-            logger = object : Logger {
-                override fun log(message: String) {
-                    println("Ktor: $message")
+    private val client by lazy {
+        HttpClient(OkHttp) {
+            Logging {
+                level = LogLevel.ALL
+                logger = object : Logger {
+                    override fun log(message: String) {
+                        println("Ktor: $message")
+                    }
                 }
             }
         }
