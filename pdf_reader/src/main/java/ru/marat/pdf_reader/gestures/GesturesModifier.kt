@@ -42,7 +42,7 @@ suspend fun PointerInputScope.detectTransformGestures(
     onDoubleTap: (position: Offset) -> Unit = {},
     enableOneFingerZoom: Boolean = false,
 ) = awaitEachGesture {
-    val firstDown = awaitFirstDown(requireUnconsumed = false)
+    val firstDown = awaitFirstDown()
     onGestureStart()
 
     var firstUp: PointerInputChange = firstDown

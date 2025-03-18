@@ -8,11 +8,9 @@ fun Modifier.readerGestures(state: ReaderLayoutPositionState) = this.pointerInpu
     coroutineScope {
         detectTransformGestures(
             cancelIfZoomCanceled = false,
-//        canConsumeGesture = { pan, zoom ->
-//            true //todo
-//        },
             onGesture = { centroid, pan, zoom, timeMillis ->
                 state.onScroll(this, pan, timeMillis)
+                true //todo
             },
             onGestureStart = {
                 state.onGestureStart(this)
