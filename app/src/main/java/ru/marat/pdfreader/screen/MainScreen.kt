@@ -3,6 +3,7 @@ package ru.marat.pdfreader.screen
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
@@ -43,6 +44,7 @@ fun MainScreen() {
     var ofs by remember { mutableFloatStateOf(0f) }
     var visible by rememberSaveable { mutableStateOf(true) }
     var orientation by rememberSaveable { mutableStateOf(true) }
+    val padding by animateFloatAsState(targetValue = if (visible) 1f else 0.7f)
 //    var spacing by remember { mutableFloatStateOf(8f) }
 //    val height = remember { Animatable(0.1f) }
     Column(

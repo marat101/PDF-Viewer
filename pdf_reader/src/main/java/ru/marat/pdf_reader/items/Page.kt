@@ -1,6 +1,5 @@
 package ru.marat.viewplayground.pdf_reader.reader.layout.items
 
-import android.graphics.Bitmap
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

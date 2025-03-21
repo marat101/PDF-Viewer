@@ -58,7 +58,7 @@ internal class ReaderSaver(
     }
 
     override fun SaverScope.save(value: ReaderState): List<String> {
-        return value.positionsState.pages.value.map { page ->
+        return value.positionsState.layoutInfo.value.pages.map { page ->
             Json.encodeToString(
                 PageData.serializer(),
                 PageData(

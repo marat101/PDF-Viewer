@@ -6,8 +6,6 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.Saver
-import androidx.compose.runtime.saveable.SaverScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Size
@@ -17,8 +15,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.forEach
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
@@ -41,17 +39,17 @@ class ReaderState internal constructor(
     private var pdfInfo: PdfInfo? = null
     private val pageLayoutHelper = object : PageLayoutHelper {
 
-        override val parentLayoutParams: StateFlow<LayoutParams>
-            get() = positionsState.layoutParams
+        override val parentLayoutInfo: StateFlow<LayoutInfo>
+            get() = positionsState.layoutInfo
 
         override fun getPageSizeByIndex(index: Int): Flow<Size> {
-            return positionsState.pagePositions.map {
-                it.getOrNull(index)?.size ?: Size.Unspecified
+            return positionsState.layoutInfo.map {
+                it.pagePositions.getOrNull(index)?.size ?: Size.Unspecified
             }
         }
 
         override fun getPositionByIndex(index: Int): PagePosition? {
-            return positionsState.pagePositions.value.getOrNull(index)
+            return positionsState.layoutInfo.value.pagePositions.getOrNull(index)
         }
     }
 
@@ -89,7 +87,7 @@ class ReaderState internal constructor(
                 }
             }
             withContext(Dispatchers.Main.immediate) {
-                positionsState.pages.value = p
+                positionsState.layoutInfo.update { it.copy(pages = p) }
                 loadingState = LoadingState.Ready
             }
         }
@@ -97,7 +95,7 @@ class ReaderState internal constructor(
 
     fun onDispose() {
         scope.cancel()
-        positionsState.pages.value.forEach { it.onDispose() }
+        positionsState.layoutInfo.value.pages.forEach { it.onDispose() }
         pdfInfo?.close()
     }
 }
