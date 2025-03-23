@@ -106,7 +106,7 @@ private fun PdfDownloadDialog(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var urlText by remember { mutableStateOf("") }
+    var urlText by remember { mutableStateOf("http://") }
     var fileNameText by remember { mutableStateOf("") }
     var progress by remember { mutableStateOf<Float?>(null) }
     var error by remember { mutableStateOf(false) }

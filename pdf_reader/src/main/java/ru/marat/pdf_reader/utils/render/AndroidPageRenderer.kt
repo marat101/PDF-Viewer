@@ -49,7 +49,7 @@ class AndroidPageRenderer(
         page.close()
         pdfRenderer.close()
         mutex.unlock()
-        withContext(Dispatchers.Main.immediate) { onComplete(bm.asImageBitmap()) }
+        withContext(Dispatchers.Main) { onComplete(bm.asImageBitmap()) }
     }
 
     override suspend fun renderPageFragment(

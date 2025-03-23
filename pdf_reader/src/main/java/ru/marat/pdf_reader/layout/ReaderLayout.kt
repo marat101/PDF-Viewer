@@ -34,8 +34,7 @@ fun ReaderLayout(
     spacing: Dp = 8.dp,
 ) {
     val scrollState by layoutState::positionsState
-    val loadedPages by scrollState.loadedPages.collectAsState(Dispatchers.Main.immediate)
-    val layoutInfo by scrollState.layoutInfo.collectAsState(Dispatchers.Main.immediate)
+    val layoutInfo by scrollState.layoutInfo.collectAsState(Dispatchers.Main)
 
     val itemProvider = rememberPagesItemProvider(layoutInfo.pages)
     LazyLayout(
@@ -51,12 +50,12 @@ fun ReaderLayout(
             }
             .readerGestures(scrollState)
             .graphicsLayer {
-                translationX = scrollState.offsetX
-                translationY = scrollState.offsetY
+                translationX = layoutInfo.offsetX
+                translationY = layoutInfo.offsetY
             },
         itemProvider = { itemProvider }
     ) { constraints: Constraints ->
-        val items = if (layoutInfo.pages.isNotEmpty()) loadedPages.fastMap { //todo
+        val items = if (layoutInfo.pages.isNotEmpty()) layoutInfo.loadedPages.fastMap { //todo
             Pair(
                 it, measure(
                     it.index,
@@ -113,8 +112,6 @@ private fun Placeable.PlacementScope.verticalLayoutPage(
 ) {
     if (params.fullHeight > viewportSize.height) {
         placeable.placeRelative(
-//            layoutState.offsetX.roundToInt(),
-//            (layoutState.offsetY + pos.start).roundToInt()
             0,
             pos.start.roundToInt()
         )
@@ -122,8 +119,6 @@ private fun Placeable.PlacementScope.verticalLayoutPage(
         val centeringOffsetY =
             ((viewportSize.height - params.fullHeight) / 2)
         placeable.placeRelative(
-//            layoutState.offsetX.roundToInt(),
-//            (layoutState.offsetY + pos.start + centeringOffsetY).roundToInt()
             0,
             (pos.start + centeringOffsetY).roundToInt()
         )
@@ -140,8 +135,6 @@ private fun Placeable.PlacementScope.horizontalLayoutPage(
     if (params.fullWidth > viewportSize.width) {
         val y = (viewportSize.height - placeable.height) / 2
         placeable.placeRelative(
-//            (layoutState.offsetX + pos.start).roundToInt(),
-//            y.roundToInt()
             pos.start.roundToInt(),
             y.roundToInt()
         )
@@ -149,8 +142,6 @@ private fun Placeable.PlacementScope.horizontalLayoutPage(
         val centeringOffsetY = ((viewportSize.height - placeable.height) / 2)
         val centeringOffsetX = ((viewportSize.width - params.fullWidth) / 2)
         placeable.placeRelative(
-//            (layoutState.offsetX + pos.start + centeringOffsetX).roundToInt(),
-//            centeringOffsetY.roundToInt()
             (pos.start + centeringOffsetX).roundToInt(),
             centeringOffsetY.roundToInt()
         )

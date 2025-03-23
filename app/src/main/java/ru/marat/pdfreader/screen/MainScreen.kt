@@ -2,6 +2,7 @@ package ru.marat.pdfreader.screen
 
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
@@ -24,14 +25,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.skip
 import kotlinx.coroutines.launch
 import ru.marat.pdf_reader.layout.ReaderLayout
 import ru.marat.pdf_reader.layout.state.LoadingState
@@ -44,6 +46,8 @@ fun MainScreen() {
     var ofs by remember { mutableFloatStateOf(0f) }
     var visible by rememberSaveable { mutableStateOf(true) }
     var orientation by rememberSaveable { mutableStateOf(true) }
+    var scrollDialogVisible by remember { mutableStateOf(false) }
+
     val padding by animateFloatAsState(targetValue = if (visible) 1f else 0.7f)
 //    var spacing by remember { mutableFloatStateOf(8f) }
 //    val height = remember { Animatable(0.1f) }
@@ -101,14 +105,24 @@ fun MainScreen() {
 //                spacing = spacing.dp,
                     layoutState = state
                 )
-                LaunchedEffect(uri) {
+                ScrollToPageDialog(
+                    visible = scrollDialogVisible,
+                    onDismiss = { scrollDialogVisible = false },
+                    onScroll = {
+                        val success = state.positionsState.scrollToPage(it)
+                        if (success) scrollDialogVisible = false
+                        success
+                    }
+                )
+                LaunchedEffect(Unit) {
                     launch {
-                        snapshotFlow { state.positionsState.offsetY }.collectLatest {
-                            ofs = it
+                        state.positionsState.layoutInfo.collectLatest {
+                            ofs = it.offset.y
                         }
                     }
                     launch {
                         snapshotFlow { orientation }.collectLatest {
+//                            state.positionsState.layoutInfo.value.isVertical != it
                             state.positionsState.setOrientation(if(orientation) Orientation.Vertical else Orientation.Horizontal)
                         }
                     }
@@ -122,15 +136,13 @@ fun MainScreen() {
         ) {
             BottomBar(
                 orientation = if(orientation) Orientation.Vertical else Orientation.Horizontal,
-            ) {
-                orientation = it == Orientation.Vertical
-            }
+                onOpenScrollDialog = {
+                    scrollDialogVisible = true
+                },
+                onOrientationChange =  {
+                    orientation = it == Orientation.Vertical
+                }
+            )
         }
     }
-//    LaunchedEffect(uri) {
-//        if (uri == null) return@LaunchedEffect
-//        delay(4000)
-//        spacing = 20f
-//        height.animateTo(1f)
-//    }
 }

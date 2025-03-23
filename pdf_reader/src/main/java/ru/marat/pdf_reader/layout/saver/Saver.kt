@@ -3,12 +3,13 @@ package ru.marat.pdf_reader.layout.saver
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Density
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
 import ru.marat.pdf_reader.layout.state.ReaderState
+import ru.marat.pdf_reader.utils.Anchor
+import ru.marat.pdf_reader.utils.createAnchor
 import ru.marat.pdf_reader.utils.pdf_info.PdfInfoProvider
 
 
@@ -18,28 +19,23 @@ class ReaderLayoutPositionSaver(private val density: Density) :
         val value = Json.decodeFromString(RestoreData.serializer(), value)
         return ReaderLayoutPositionState(
             density = density,
-            offsetFraction = value.offsetFraction,
-            previousOffset = Offset(value.offsetX, value.offsetY),
+            anchor = value.anchor,
             orientation = value.orientation
         )
     }
 
-    override fun SaverScope.save(value: ReaderLayoutPositionState): String {
-        return Json.encodeToString(
-            RestoreData(
-                offsetFraction = 0f,
-                offsetX = value.offsetX,
-                offsetY = value.offsetY,
-                orientation = Orientation.Vertical
-            )
+    override fun SaverScope.save(value: ReaderLayoutPositionState): String? {
+        val layoutInfo = value.layoutInfo.value
+        val restoreData = RestoreData(
+            anchor = createAnchor(layoutInfo),
+            orientation = layoutInfo.orientation
         )
-    }
+        return Json.encodeToString(restoreData)
+    }//todo restore for vertical
 
     @Serializable
     data class RestoreData(
-        val offsetFraction: Float, //fixme
-        val offsetX: Float,
-        val offsetY: Float,
+        val anchor: Anchor?,
         val orientation: Orientation
     )
 }

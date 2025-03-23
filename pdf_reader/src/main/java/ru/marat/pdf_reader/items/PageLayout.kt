@@ -39,7 +39,7 @@ fun PageLayout(
     modifier: Modifier = Modifier,
     page: Page
 ) {
-    val configuration = LocalConfiguration.current
+    Dispatchers.Main.immediate
     val colors = LocalPageColors.current
     val bitmap by page.bitmap.collectAsState(initial = null, Dispatchers.Main)
     val pageSize by page.size.collectAsState()

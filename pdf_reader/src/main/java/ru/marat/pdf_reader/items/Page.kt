@@ -107,7 +107,7 @@ class Page(
     }
 
     internal fun onLoad() {
-        scope.launch(Dispatchers.Main.immediate) {
+        scope.launch(Dispatchers.Main) {
             isLoaded.emit(true)
         }
     }
@@ -118,7 +118,7 @@ class Page(
         scalingJob?.cancel()
         scalingJob = null
         scaledPage = null
-        scope.launch(Dispatchers.Main.immediate) {
+        scope.launch(Dispatchers.Main) {
             isLoaded.emit(false)
         }
     }
