@@ -40,10 +40,6 @@ class Page(
     private var job: Job? = null
     private var scalingJob: Job? = null
 
-
-//    var viewportSize by mutableStateOf(Size.Unspecified)
-//        internal set
-
     private val isLoaded = MutableStateFlow(false)
 
     private val scope = CoroutineScope(Dispatchers.Default)
@@ -75,7 +71,7 @@ class Page(
                 pageSize = newSize
             ) {
                 bm = it
-                println("bitmap size ${bm?.size()}")
+                println("bitmap size ${bm.size()}")
                 println("bitmap size in bytes: ${sizeInBytes(bm)}")
             }
             bm

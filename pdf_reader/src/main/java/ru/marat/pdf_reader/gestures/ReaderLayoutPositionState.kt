@@ -171,6 +171,10 @@ class ReaderLayoutPositionState(
         viewportSize: Size
     ): LayoutInfo {
         val prevValue = layoutInfo.value
+
+        val needUpdate =
+            anchor != null || prevValue.spacing != spacing || prevValue.viewportSize != viewportSize || prevValue.pagePositions.isEmpty()
+        if (!needUpdate) return prevValue
         val (fullSize, positions) = calculatePositions(
             prevValue.pages,
             viewportSize,
@@ -189,14 +193,18 @@ class ReaderLayoutPositionState(
                 val result = calculateNewOffsetWithAnchor(anchor!!, targetValue)
                 anchor = null
                 result
-            } else calculateNewOffset(prevValue, targetValue)
+            } else {
+                val anchor = createAnchor(prevValue)
+                if (anchor != null) calculateNewOffsetWithAnchor(anchor, targetValue)
+                else calculateNewOffset(prevValue, targetValue)
+            }
         }
     }
 
     private fun calculateNewOffset(prevValue: LayoutInfo, targetValue: LayoutInfo): LayoutInfo {
         return if (!prevValue.isVertical) {
             val newValue =
-                prevValue.offsetX * (targetValue.fullSize.width / prevValue.fullSize.width)
+                prevValue.offsetX * (targetValue.fullWidth / prevValue.fullWidth)
             if (newValue.isNaN()) return targetValue
             targetValue.copy(
                 offset = targetValue.offset.copy(

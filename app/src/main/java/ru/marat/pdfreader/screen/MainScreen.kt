@@ -114,7 +114,7 @@ fun MainScreen() {
                         success
                     }
                 )
-                LaunchedEffect(Unit) {
+                LaunchedEffect(uri) {
                     launch {
                         state.positionsState.layoutInfo.collectLatest {
                             ofs = it.offset.y
@@ -122,7 +122,6 @@ fun MainScreen() {
                     }
                     launch {
                         snapshotFlow { orientation }.collectLatest {
-//                            state.positionsState.layoutInfo.value.isVertical != it
                             state.positionsState.setOrientation(if(orientation) Orientation.Vertical else Orientation.Horizontal)
                         }
                     }
