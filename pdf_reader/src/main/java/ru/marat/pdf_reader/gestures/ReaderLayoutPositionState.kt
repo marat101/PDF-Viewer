@@ -1,5 +1,15 @@
 package ru.marat.pdf_reader.gestures
 
+import android.view.animation.DecelerateInterpolator
+import androidx.compose.animation.SplineBasedFloatDecayAnimationSpec
+import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.core.FloatDecayAnimationSpec
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.calculateTargetValue
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.runtime.Composable
@@ -14,10 +24,12 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastMap
+import androidx.core.view.ViewCompat.animate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
@@ -32,15 +44,16 @@ import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Stable
 class ReaderLayoutPositionState(
-    //todo
-    density: Density,
+    private val density: Density,
     private var anchor: Anchor?,
     orientation: Orientation = Orientation.Vertical,
 ) {
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate)
 
-    private val decay = splineBasedDecay<Float>(density)
+    private var decayAnimationX: Job? = null
+    private var decayAnimationY: Job? = null
+    private val decay = SplineBasedFloatDecayAnimationSpec(density)
 
 
     val layoutInfo = MutableStateFlow(
@@ -49,27 +62,13 @@ class ReaderLayoutPositionState(
         )
     )
 
-    internal fun updateLayoutParams(
-        viewportSize: Size = layoutInfo.value.viewportSize,
-        spacing: Float = layoutInfo.value.spacing,
-        fullSize: Size = layoutInfo.value.fullSize,
-        orientation: Orientation = layoutInfo.value.orientation
-    ): LayoutInfo = layoutInfo.updateAndGet {
-        it.copy(
-            spacing = spacing,
-            viewportSize = viewportSize,
-            fullSize = fullSize,
-            orientation = orientation
-        )
-    }
-
     private val velocityTracker = VelocityTracker()
 
     fun onScroll(
         scope: CoroutineScope = this.scope,
         panChange: Offset,
         timeMillis: Long
-    ): Boolean { //todo wtf
+    ): Boolean {
         val layoutInfo = layoutInfo.value
         val newOffsetX =
             (layoutInfo.offsetX + panChange.x).coerceIn(-layoutInfo.calculateMaxOffsetX(), 0f)
@@ -79,24 +78,16 @@ class ReaderLayoutPositionState(
         println("canConsume: $canConsume")
         return if (canConsume) {
             velocityTracker.addPosition(timeMillis, Offset(newOffsetX, newOffsetY))
-//            scope.launch {
             println("onScroll: $newOffsetX, $newOffsetY")
-//                _offsetX.snapTo(newOffsetX) todo animatable
-            setOffset(Offset(newOffsetX, newOffsetY))
+            setOffset(newOffsetX, newOffsetY)
             true
-//                _offsetX.floatValue = newOffsetX
-//                _offsetY.snapTo(newOffsetY)
-//            }; true
         } else false
     }
 
     fun onGestureStart(
         scope: CoroutineScope = this.scope
     ) {
-        scope.launch {
-//            _offsetY.stop()
-//            _offsetX.stop() todo animatable
-        }
+        cancelDecay()
     }
 
     fun onGestureEnd(
@@ -104,25 +95,25 @@ class ReaderLayoutPositionState(
     ) {
         val velocity = velocityTracker.calculateVelocity()
         velocityTracker.resetTracking()
-        scope.launch {
-//            _offsetY.updateBounds(
-//                lowerBound = -layoutInfo.value.calculateMaxOffsetY(),
-//                upperBound = 0f
-//            )
-//            _offsetY.animateDecay(
-//                initialVelocity = velocity.y,
-//                animationSpec = decay
-//            )
+        val layout = layoutInfo.value
+        val initialValue = layout.offset
+        decayAnimationY = scope.launch {
+            animateDecay(
+                initialValue = initialValue.y,
+                initialVelocity = velocity.y,
+                animationSpec = decay
+            ) { value, _ ->
+                setOffset(null, value.coerceIn(-layout.calculateMaxOffsetY(), 0f))
+            }
         }
-        scope.launch {
-//            _offsetX.updateBounds(
-//                lowerBound = -layoutInfo.value.calculateMaxOffsetX(),
-//                upperBound = 0f todo animatable
-//            )
-//            _offsetX.animateDecay( todo animatable
-//                initialVelocity = velocity.x,
-//                animationSpec = decay
-//            )
+        decayAnimationX = scope.launch {
+            animateDecay(
+                initialValue = initialValue.x,
+                initialVelocity = velocity.x,
+                animationSpec = decay
+            ) { value, _ ->
+                setOffset(value.coerceIn(-layout.calculateMaxOffsetX(), 0f), null)
+            }
         }
     }
 
@@ -175,6 +166,7 @@ class ReaderLayoutPositionState(
         val needUpdate =
             anchor != null || prevValue.spacing != spacing || prevValue.viewportSize != viewportSize || prevValue.pagePositions.isEmpty()
         if (!needUpdate) return prevValue
+        cancelDecay()
         val (fullSize, positions) = calculatePositions(
             prevValue.pages,
             viewportSize,
@@ -255,9 +247,14 @@ class ReaderLayoutPositionState(
         }
     }
 
-    fun setOffset(offset: Offset): LayoutInfo {
+    fun setOffset(x: Float?, y: Float?): LayoutInfo {
         return layoutInfo.updateAndGet {
-            it.copy(offset = offset)
+            it.copy(
+                offset = it.offset.copy(
+                    x = x ?: it.offsetX,
+                    y = y ?: it.offsetY
+                )
+            )
         }
     }
 
@@ -275,11 +272,17 @@ class ReaderLayoutPositionState(
     }
 
     fun setOrientation(orientation: Orientation) {
+        cancelDecay()
         layoutInfo.update {
             if (it.orientation == orientation) return
             anchor = createAnchor(it)
             it.copy(orientation = orientation)
         }
+    }
+
+    private fun cancelDecay() {
+        decayAnimationX?.cancel()
+        decayAnimationY?.cancel()
     }
 }
 
