@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 fun BottomBar(
     orientation: Orientation,
     onOrientationChange: (Orientation) -> Unit,
+    onOpenScrollDialog: () -> Unit
 ) {
     val density = LocalDensity.current
     val bottomPadding = density.run { WindowInsets.systemBars.getBottom(this).toDp() }
@@ -42,9 +43,14 @@ fun BottomBar(
                 else Orientation.Horizontal
             )
         }) {
-            Text("Change orientation")
+            Text("Orientation")
         }
         Spacer(Modifier.size(8.dp))
         Text("Orientation:\n$orientation")
+        Button(onClick = {
+            onOpenScrollDialog()
+        }) {
+            Text("Scroll")
+        }
     }
 }

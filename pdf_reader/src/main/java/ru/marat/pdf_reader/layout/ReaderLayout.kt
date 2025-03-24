@@ -11,6 +11,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
@@ -20,7 +21,7 @@ import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.Dispatchers
 import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
 import ru.marat.pdf_reader.gestures.readerGestures
-import ru.marat.pdf_reader.layout.state.LayoutParams
+import ru.marat.pdf_reader.layout.state.LayoutInfo
 import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.layout.state.ReaderState
 import kotlin.math.roundToInt
@@ -33,11 +34,9 @@ fun ReaderLayout(
     spacing: Dp = 8.dp,
 ) {
     val scrollState by layoutState::positionsState
-    val pages by scrollState.pages.collectAsState()
-    val loadedPages by scrollState.loadedPages.collectAsState(emptyList(),Dispatchers.Main.immediate)
-    val layoutParams by scrollState.layoutParams.collectAsState(Dispatchers.Main.immediate)
+    val layoutInfo by scrollState.layoutInfo.collectAsState(Dispatchers.Main)
 
-    val itemProvider = rememberPagesItemProvider(pages)
+    val itemProvider = rememberPagesItemProvider(layoutInfo.pages)
     LazyLayout(
         modifier = modifier
             .drawWithContent {
@@ -49,16 +48,20 @@ fun ReaderLayout(
                     )
                 )
             }
-            .readerGestures(scrollState),
+            .readerGestures(scrollState)
+            .graphicsLayer {
+                translationX = layoutInfo.offsetX
+                translationY = layoutInfo.offsetY
+            },
         itemProvider = { itemProvider }
     ) { constraints: Constraints ->
-        val items = if (pages.isNotEmpty()) loadedPages.fastMap { //todo
+        val items = if (layoutInfo.pages.isNotEmpty()) layoutInfo.loadedPages.fastMap { //todo
             Pair(
                 it, measure(
                     it.index,
                     constraints.copy(
                         minHeight = 0,
-                        maxHeight = if (layoutParams.isVertical) Constraints.Infinity else constraints.maxHeight,
+                        maxHeight = if (layoutInfo.isVertical) Constraints.Infinity else constraints.maxHeight,
                         minWidth = 0
                     )
                 )
@@ -69,39 +72,30 @@ fun ReaderLayout(
                 constraints.maxWidth.toFloat(),
                 constraints.maxHeight.toFloat()
             )
-            scrollState.updateLayoutParams(
+            scrollState.updateViewportSize(
                 spacing = spacing.toPx(),
                 viewportSize = newViewportSize
             )
             items.fastForEach { (pos, placeables) ->
                 val placeable = placeables.firstOrNull() ?: return@fastForEach
-                if (layoutParams.isVertical)
+                if (layoutInfo.isVertical)
                     verticalLayoutPage(
                         placeable = placeable,
                         pos = pos,
                         layoutState = scrollState,
-                        params = layoutParams,
+                        params = layoutInfo,
                         viewportSize = newViewportSize
                     )
                 else horizontalLayoutPage(
                     placeable = placeable,
                     pos = pos,
                     layoutState = scrollState,
-                    params = layoutParams,
+                    params = layoutInfo,
                     viewportSize = newViewportSize
                 )
             }
         }
     }
-//    LaunchedEffect(key1 = Unit) {
-//        snapshotFlow { layoutState.positionsState.viewportSize }
-//            .filter { it.isSpecified }
-//            .collectLatest { newSize ->
-//                delay(300)
-//                println("resize called")
-//                layoutState.positionsState.pages.fastForEach { it.resizeBitmap(newSize) }
-//            }
-//    }
     DisposableEffect(Unit) {
         onDispose {
             layoutState.onDispose()
@@ -113,20 +107,20 @@ private fun Placeable.PlacementScope.verticalLayoutPage(
     placeable: Placeable,
     pos: PagePosition,
     layoutState: ReaderLayoutPositionState,
-    params: LayoutParams,
+    params: LayoutInfo,
     viewportSize: Size
 ) {
     if (params.fullHeight > viewportSize.height) {
         placeable.placeRelative(
-            layoutState.offsetX.roundToInt(),
-            (layoutState.offsetY + pos.start).roundToInt()
+            0,
+            pos.start.roundToInt()
         )
     } else {
         val centeringOffsetY =
             ((viewportSize.height - params.fullHeight) / 2)
         placeable.placeRelative(
-            layoutState.offsetX.roundToInt(),
-            (layoutState.offsetY + pos.start + centeringOffsetY).roundToInt()
+            0,
+            (pos.start + centeringOffsetY).roundToInt()
         )
     }
 }
@@ -135,20 +129,20 @@ private fun Placeable.PlacementScope.horizontalLayoutPage(
     placeable: Placeable,
     pos: PagePosition,
     layoutState: ReaderLayoutPositionState,
-    params: LayoutParams,
+    params: LayoutInfo,
     viewportSize: Size
 ) {
     if (params.fullWidth > viewportSize.width) {
         val y = (viewportSize.height - placeable.height) / 2
         placeable.placeRelative(
-            (layoutState.offsetX + pos.start).roundToInt(),
+            pos.start.roundToInt(),
             y.roundToInt()
         )
     } else {
         val centeringOffsetY = ((viewportSize.height - placeable.height) / 2)
         val centeringOffsetX = ((viewportSize.width - params.fullWidth) / 2)
         placeable.placeRelative(
-            (layoutState.offsetX + pos.start + centeringOffsetX).roundToInt(),
+            (pos.start + centeringOffsetX).roundToInt(),
             centeringOffsetY.roundToInt()
         )
     }
