@@ -8,7 +8,7 @@ interface PdfInfo {
 
     val pageCount: Int
 
-    fun getPageAspectRatio(index: Int): Float
+    suspend fun getPageAspectRatio(index: Int): Float
 
     fun close()
 }

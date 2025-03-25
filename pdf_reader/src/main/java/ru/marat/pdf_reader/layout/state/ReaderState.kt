@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,7 @@ import ru.marat.pdf_reader.utils.pdf_info.AndroidPdfInfoProvider
 import ru.marat.pdf_reader.utils.pdf_info.PdfInfo
 import ru.marat.pdf_reader.utils.pdf_info.PdfInfoProvider
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
+import kotlin.system.measureTimeMillis
 
 @Stable
 class ReaderState internal constructor(
@@ -64,32 +66,38 @@ class ReaderState internal constructor(
 
     init {
         scope.launch {
-            pdfInfo = pdfInfoProvider.get()
-            var counter = 0
-            val p = savedPages?.map {
-                Page(
-                    layoutHelper = pageLayoutHelper,
-                    pageRenderer = pdfInfo!!.pageRenderer,
-                    ratio = it.ratio,
-                    index = it.index
-                )
-            } ?: List(pageCount) { index ->
-                Page(
-                    layoutHelper = pageLayoutHelper,
-                    pageRenderer = pdfInfo!!.pageRenderer,
-                    ratio = pdfInfo!!.getPageAspectRatio(index),
-                    index = index
-                ).apply {
-                    counter++
-                    withContext(Dispatchers.Main.immediate) {
-                        loadingState = LoadingState.Loading(counter.toFloat() / pageCount.toFloat())
+            val time = measureTimeMillis {
+                pdfInfo = pdfInfoProvider.get()
+                var counter = 0
+                val p = savedPages?.map {
+                    Page(
+                        layoutHelper = pageLayoutHelper,
+                        pageRenderer = pdfInfo!!.pageRenderer,
+                        ratio = it.ratio,
+                        index = it.index
+                    )
+                } ?: List(pageCount) { index ->
+                    async {
+                        Page(
+                            layoutHelper = pageLayoutHelper,
+                            pageRenderer = pdfInfo!!.pageRenderer,
+                            ratio = pdfInfo!!.getPageAspectRatio(index),
+                            index = index
+                        ).apply {
+                            counter++
+                            withContext(Dispatchers.Main.immediate) {
+                                loadingState =
+                                    LoadingState.Loading(counter.toFloat() / pageCount.toFloat())
+                            }
+                        }
                     }
+                }.map { it.await() }
+                withContext(Dispatchers.Main.immediate) {
+                    positionsState.layoutInfo.update { it.copy(pages = p) }
+                    loadingState = LoadingState.Ready
                 }
             }
-            withContext(Dispatchers.Main.immediate) {
-                positionsState.layoutInfo.update { it.copy(pages = p) }
-                loadingState = LoadingState.Ready
-            }
+            println("SDLFLKSDMFLD $time")
         }
     }
 

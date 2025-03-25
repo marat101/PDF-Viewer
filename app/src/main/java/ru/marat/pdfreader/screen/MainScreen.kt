@@ -1,6 +1,8 @@
 package ru.marat.pdfreader.screen
 
+import android.R.attr.spacing
 import android.content.Intent
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
@@ -38,6 +40,7 @@ import kotlinx.coroutines.launch
 import ru.marat.pdf_reader.layout.ReaderLayout
 import ru.marat.pdf_reader.layout.state.LoadingState
 import ru.marat.pdf_reader.layout.state.rememberReaderLayoutState
+import androidx.core.net.toUri
 
 @Composable
 fun MainScreen() {
@@ -61,7 +64,8 @@ fun MainScreen() {
             modifier = Modifier.zIndex(1f),
             enter = expandVertically(),
             exit = shrinkVertically(),
-            visible = visible) {
+            visible = visible
+        ) {
             MainToolbar(ofs) { newUri ->
                 try {
                     context.contentResolver.takePersistableUriPermission(
@@ -102,7 +106,7 @@ fun MainScreen() {
                                     style = Stroke(width = 4.dp.toPx())
                                 )
                         },
-//                spacing = spacing.dp,
+                    spacing = 6.dp,
                     layoutState = state
                 )
                 ScrollToPageDialog(
@@ -122,7 +126,7 @@ fun MainScreen() {
                     }
                     launch {
                         snapshotFlow { orientation }.collectLatest {
-                            state.positionsState.setOrientation(if(orientation) Orientation.Vertical else Orientation.Horizontal)
+                            state.positionsState.setOrientation(if (orientation) Orientation.Vertical else Orientation.Horizontal)
                         }
                     }
                 }
@@ -134,11 +138,11 @@ fun MainScreen() {
             exit = shrinkVertically(),
         ) {
             BottomBar(
-                orientation = if(orientation) Orientation.Vertical else Orientation.Horizontal,
+                orientation = if (orientation) Orientation.Vertical else Orientation.Horizontal,
                 onOpenScrollDialog = {
                     scrollDialogVisible = true
                 },
-                onOrientationChange =  {
+                onOrientationChange = {
                     orientation = it == Orientation.Vertical
                 }
             )

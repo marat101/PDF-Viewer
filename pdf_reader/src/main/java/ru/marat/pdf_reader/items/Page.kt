@@ -65,15 +65,12 @@ class Page(
 
     private suspend fun drawPage(newSize: Size): ImageBitmap? {
         return kotlin.runCatching {
-            var bm: ImageBitmap? = null
-            pageRenderer.renderPage(
+            var bm: ImageBitmap = pageRenderer.renderPage(
                 index = index,
                 pageSize = newSize
-            ) {
-                bm = it
-                println("bitmap size ${bm.size()}")
-                println("bitmap size in bytes: ${sizeInBytes(bm)}")
-            }
+            )
+            println("bitmap size ${bm.size()}")
+            println("bitmap size in bytes: ${sizeInBytes(bm)}")
             bm
         }.getOrElse {
             it.printStackTrace()
@@ -89,9 +86,7 @@ class Page(
         if (scaledPage?.rect == scaleRect) return
         scalingJob = scope.launch {
             kotlin.runCatching {
-                pageRenderer.renderPageFragment(index, size.value.toRect(), scaleRect, scale) {
-                    scaledPage = it
-                }
+                scaledPage = pageRenderer.renderPageFragment(index, size.value.toRect(), scaleRect, scale)
             }.getOrElse { it.printStackTrace() }
         }
     }
