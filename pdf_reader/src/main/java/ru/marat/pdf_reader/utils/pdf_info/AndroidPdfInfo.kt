@@ -9,42 +9,32 @@ import ru.marat.pdf_reader.utils.render.AndroidPageRenderer
 import ru.marat.pdf_reader.utils.render.PageRenderer
 
 class AndroidPdfInfo(
+    private val renderer: RendererScope,
     override val pageCount: Int,
-    onCreateRenderer: () -> PdfRenderer //todo оптимизировать использование отрисовщика
 ) : PdfInfo {
 
     companion object {
         suspend fun create(context: Context, uri: Uri): AndroidPdfInfo =
             withContext(Dispatchers.IO) {
-                val onCreateRenderer = {
+                val scope = RendererScope {
                     PdfRenderer(context.contentResolver.openFileDescriptor(uri, "r")!!)
                 }
-                val renderer = onCreateRenderer()
-                val pageCount = renderer.pageCount
-                renderer.close()
-                AndroidPdfInfo(pageCount, onCreateRenderer)
+                val pageCount = scope.use {
+                    it.pageCount
+                }
+                AndroidPdfInfo(scope, pageCount)
             }
     }
 
-    private val rendererScope = RendererScope(onCreateRenderer)
-
-    override val pageRenderer: PageRenderer = AndroidPageRenderer(rendererScope)
+    override val pageRenderer: PageRenderer = AndroidPageRenderer(renderer)
 
     override suspend fun getPageAspectRatio(index: Int): Float {
-        return rendererScope.use { renderer ->
+        return renderer.use { renderer ->
             val page = renderer.openPage(index)
             val ratio = page.height.toFloat() / page.width.toFloat()
             page.close()
             ratio
         }
-    }
-
-    override fun close() {
-//        CoroutineScope(Dispatchers.Default).launch {
-//            mutex.withLock {
-//                onCreateRenderer.close()
-//            }
-//        }
     }
 }
 

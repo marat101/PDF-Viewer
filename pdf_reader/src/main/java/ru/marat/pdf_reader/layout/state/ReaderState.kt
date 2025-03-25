@@ -104,7 +104,6 @@ class ReaderState internal constructor(
     fun onDispose() {
         scope.cancel()
         positionsState.layoutInfo.value.pages.forEach { it.onDispose() }
-        pdfInfo?.close()
     }
 }
 
