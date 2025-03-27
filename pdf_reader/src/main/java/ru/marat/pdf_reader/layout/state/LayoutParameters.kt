@@ -1,5 +1,6 @@
 package ru.marat.pdf_reader.layout.state
 
+import android.R.attr.value
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.geometry.Offset
@@ -8,7 +9,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.util.fastMaxOf
 import ru.marat.pdf_reader.gestures.Bounds
+import ru.marat.pdf_reader.gestures.setBounds
+import ru.marat.pdf_reader.gestures.setOffsetBounds
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
 import kotlin.compareTo
 import kotlin.times
@@ -24,6 +28,11 @@ data class LayoutInfo(
     val offset: Offset = Offset.Zero,
     val zoom: Float = 1f,
 ) {
+
+    companion object {
+        const val MIN_ZOOM = 0.5F
+        const val MAX_ZOOM = 100F
+    }
 
     val fullHeight: Float get() = fullSize.height
     val fullWidth: Float get() = fullSize.width
@@ -95,4 +104,19 @@ data class LayoutInfo(
 
         }
     }
+
+    val zoomBounds by lazy(mode = LazyThreadSafetyMode.PUBLICATION) {
+        val minZoom = maxOf(
+            MIN_ZOOM,
+            (if (isVertical) viewportSize.height / fullHeight else viewportSize.width / fullWidth)
+                .coerceAtMost(1f)
+        )
+
+        Bounds(minZoom, MAX_ZOOM)
+    }
+
+    fun coerceToBounds() = this.copy(
+        zoom = zoom.setBounds(zoomBounds),
+        offset = offset.setOffsetBounds(horizontalBounds,verticalBounds)
+    )
 }

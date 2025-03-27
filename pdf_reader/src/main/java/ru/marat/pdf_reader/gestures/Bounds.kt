@@ -1,5 +1,6 @@
 package ru.marat.pdf_reader.gestures
 
+import androidx.annotation.FloatRange
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.ui.geometry.Offset

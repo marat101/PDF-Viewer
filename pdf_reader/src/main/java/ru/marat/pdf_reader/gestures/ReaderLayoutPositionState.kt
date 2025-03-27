@@ -33,6 +33,7 @@ import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.utils.Anchor
 import ru.marat.pdf_reader.utils.createAnchor
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
+import java.util.concurrent.CancellationException
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Stable
@@ -86,7 +87,7 @@ class ReaderLayoutPositionState(
     ) {
         val layoutInfo = layoutInfo.value
         val target = layoutInfo.copy(
-            zoom = layoutInfo.zoom * zoomChange,
+            zoom = (layoutInfo.zoom * zoomChange).setBounds(layoutInfo.zoomBounds),
         )
         this.layoutInfo.update {
             target.copy(
@@ -111,7 +112,8 @@ class ReaderLayoutPositionState(
             ) { value, _ ->
                 layoutInfo.update {
                     it.copy(
-                        zoom = value
+                        zoom = value.setBounds(it.zoomBounds),
+                        offset = it.offset.setOffsetBounds(it.horizontalBounds,it.verticalBounds)
                     )
                 }
             }
@@ -224,7 +226,7 @@ class ReaderLayoutPositionState(
                 val anchor = createAnchor(prevValue)
                 if (anchor != null) calculateNewOffsetWithAnchor(anchor, targetValue)
                 else calculateNewOffset(prevValue, targetValue)
-            }
+            }.coerceToBounds()
         }
     }
 
@@ -299,7 +301,7 @@ class ReaderLayoutPositionState(
         layoutInfo.update {
             if (it.orientation == orientation) return
             anchor = createAnchor(it)
-            it.copy(orientation = orientation)
+            it.copy(orientation = orientation).coerceToBounds()
         }
     }
 
