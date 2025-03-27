@@ -10,8 +10,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -46,9 +49,13 @@ import androidx.core.net.toUri
 fun MainScreen() {
     var uri by rememberSaveable { mutableStateOf<String?>(null) }
     val context = LocalContext.current
-    var ofs by remember { mutableFloatStateOf(0f) }
-    var visible by rememberSaveable { mutableStateOf(true) }
+
+    var ofs by remember { mutableStateOf(Offset.Zero) }
+    var zoom by remember { mutableFloatStateOf(1f) }
     var orientation by rememberSaveable { mutableStateOf(true) }
+
+
+    var visible by rememberSaveable { mutableStateOf(true) }
     var scrollDialogVisible by remember { mutableStateOf(false) }
 
     val padding by animateFloatAsState(targetValue = if (visible) 1f else 0.7f)
@@ -66,7 +73,10 @@ fun MainScreen() {
             exit = shrinkVertically(),
             visible = visible
         ) {
-            MainToolbar(ofs) { newUri ->
+            MainToolbar(
+                ofs,
+                zoom
+            ) { newUri ->
                 try {
                     context.contentResolver.takePersistableUriPermission(
                         newUri,
@@ -85,14 +95,9 @@ fun MainScreen() {
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .pointerInput(Unit) {
-                    detectTapGestures {
-                        visible = !visible
-                    }
-                }
         ) {
             if (uri != null) {
-                val state = rememberReaderLayoutState(Uri.parse(uri))
+                val state = rememberReaderLayoutState(uri!!.toUri())
                 ReaderLayout(
                     modifier = Modifier
                         .fillMaxSize()
@@ -107,7 +112,8 @@ fun MainScreen() {
                                 )
                         },
                     spacing = 6.dp,
-                    layoutState = state
+                    layoutState = state,
+                    onTap = { visible = !visible }
                 )
                 ScrollToPageDialog(
                     visible = scrollDialogVisible,
@@ -121,7 +127,8 @@ fun MainScreen() {
                 LaunchedEffect(uri) {
                     launch {
                         state.positionsState.layoutInfo.collectLatest {
-                            ofs = it.offset.y
+                            ofs = it.offset
+                            zoom = it.zoom
                         }
                     }
                     launch {

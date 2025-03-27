@@ -1,7 +1,6 @@
 package ru.marat.pdf_reader.utils.pdf_info
 
 import android.graphics.pdf.PdfRenderer
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -13,7 +12,7 @@ class RendererScope(
     private val operationsCount = AtomicInteger(0)
     private var renderer: PdfRenderer? = null
 
-    suspend fun <T> use(block: suspend (PdfRenderer) -> T): T = coroutineScope {
+    suspend fun <T> use(block: suspend (PdfRenderer) -> T): T  {
         operationsCount.incrementAndGet()
 
         mutex.lock()
@@ -22,7 +21,6 @@ class RendererScope(
         val onClose = {
             val currentOpCount = operationsCount.decrementAndGet()
             if (currentOpCount <= 0) {
-                println("laksmdlaskmdlkasmd $currentOpCount")
                 renderer?.close()
                 renderer = null
             }
@@ -33,6 +31,6 @@ class RendererScope(
             throw it
         }
         onClose()
-        result
+        return result
     }
 }

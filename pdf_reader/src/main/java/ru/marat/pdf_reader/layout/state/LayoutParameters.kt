@@ -2,30 +2,16 @@ package ru.marat.pdf_reader.layout.state
 
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.Stable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isSpecified
+import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
-import androidx.compose.ui.graphics.Color
-import kotlinx.serialization.DeserializationStrategy
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.buildClassSerialDescriptor
-import kotlinx.serialization.descriptors.element
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.encoding.decodeStructure
-import kotlinx.serialization.encoding.encodeStructure
-import kotlinx.serialization.json.Json
+import ru.marat.pdf_reader.gestures.Bounds
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
+import kotlin.compareTo
+import kotlin.times
 
 @Immutable
 data class LayoutInfo(
@@ -36,40 +22,77 @@ data class LayoutInfo(
     val pages: List<Page> = emptyList(),
     val pagePositions: List<PagePosition> = emptyList(),
     val offset: Offset = Offset.Zero,
+    val zoom: Float = 1f,
 ) {
 
-    val fullHeight: Float
-        get() = fullSize.height
-    val fullWidth: Float
-        get() = fullSize.width
+    val fullHeight: Float get() = fullSize.height
+    val fullWidth: Float get() = fullSize.width
 
     val offsetX get() = offset.x
     val offsetY get() = offset.y
 
     val isVertical get() = orientation == Orientation.Vertical
 
-    fun calculateMaxOffsetY(): Float =
-        if (viewportSize.isSpecified)
-            (fullHeight - viewportSize.height).coerceAtLeast(0f)
-        else 0f
-
-
-    fun calculateMaxOffsetX(): Float =
-        if (viewportSize.isSpecified)
-            (fullWidth - viewportSize.width).coerceAtLeast(0f)
-        else 0f
-
-    val loadedPages: List<PagePosition>
-        get() {
-            if (viewportSize.isUnspecified) return emptyList()
-            return pagePositions.filter {
-                if (isVertical) {
-                    val r = viewportSize.toRect().translate(0f, -offset.y)
-                    r.overlaps(Rect(0f, it.start, 1f, it.end))
-                } else {
-                    val r = viewportSize.toRect().translate(-offset.x, 0f)
-                    r.overlaps(Rect(it.start, 0f, it.end, 1f))
-                }
+    val loadedPages: List<PagePosition> =
+        if (viewportSize.isUnspecified) emptyList()
+        else pagePositions.filter { // todo calculate with scale
+            if (isVertical) {
+                val r = (viewportSize.copy(
+                    height = viewportSize.height * (1f / zoom)
+                )).toRect().translate(0f, -offset.y)
+                r.overlaps(Rect(0f, it.start, 1f, it.end))
+            } else {
+                val r = (viewportSize.copy(
+                    width = viewportSize.width * (1f / zoom)
+                )).toRect().translate(-offset.x, 0f)
+                r.overlaps(Rect(it.start, 0f, it.end, 1f))
             }
         }
+
+    val verticalBounds by lazy(mode = LazyThreadSafetyMode.PUBLICATION) {
+        if (viewportSize.isUnspecified) return@lazy Bounds.Zero
+        if (isVertical) {
+            if (fullHeight > viewportSize.height) {
+                val maxOffset = (fullHeight - (viewportSize.height * (1f / zoom))).coerceAtLeast(0f)
+                Bounds(-maxOffset, 0f)
+            } else {
+                if ((viewportSize.height * (1f / zoom) > fullHeight)) {
+                    val offset = (viewportSize.center.y * (1f / zoom)) - fullSize.center.y
+                    Bounds(offset, offset)
+                } else {
+                    val maxOffset =
+                        (fullHeight - (viewportSize.height * (1f / zoom))).coerceAtLeast(0f)
+                    Bounds(-maxOffset, 0f)
+                }
+            }
+        } else {
+            if (loadedPages.isEmpty()) return@lazy Bounds(viewportSize.center.y)
+            Bounds(
+                (loadedPages.maxOf { it.size.height / 2 } - (viewportSize.center.y * (1f / zoom)))
+                    .coerceAtLeast(0f)
+            )
+        }
+    }
+
+    val horizontalBounds by lazy(mode = LazyThreadSafetyMode.PUBLICATION) {
+        if (viewportSize.isUnspecified) return@lazy Bounds.Zero
+        if (isVertical) {
+            Bounds((viewportSize.center.x - (viewportSize.center.x * (1f / zoom))).coerceAtLeast(0f))
+        } else {
+            if (fullWidth > viewportSize.width) {
+                val maxOffset = (fullWidth - (viewportSize.width * (1f / zoom))).coerceAtLeast(0f)
+                Bounds(-maxOffset, 0f)
+            } else {
+                if ((viewportSize.width * (1f / zoom) > fullWidth)) {
+                    val offset = (viewportSize.center.x * (1f / zoom)) - fullSize.center.x
+                    Bounds(offset, offset)
+                } else {
+                    val maxOffset =
+                        (fullWidth - (viewportSize.width * (1f / zoom))).coerceAtLeast(0f)
+                    Bounds(-maxOffset, 0f)
+                }
+            }
+
+        }
+    }
 }

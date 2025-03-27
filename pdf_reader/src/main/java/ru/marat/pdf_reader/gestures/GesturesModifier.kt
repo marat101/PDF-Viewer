@@ -16,7 +16,7 @@ import androidx.compose.ui.util.fastAny
 import androidx.compose.ui.util.fastForEach
 
 
-//from net.engawapg.lib:zoomable
+// from net.engawapg.lib:zoomable
 /**
  * Customized transform gesture detector.
  *

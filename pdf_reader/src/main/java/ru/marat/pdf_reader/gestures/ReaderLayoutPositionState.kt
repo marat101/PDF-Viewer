@@ -1,16 +1,9 @@
 package ru.marat.pdf_reader.gestures
 
-import android.view.animation.DecelerateInterpolator
 import androidx.compose.animation.SplineBasedFloatDecayAnimationSpec
-import androidx.compose.animation.core.DecayAnimationSpec
-import androidx.compose.animation.core.FloatDecayAnimationSpec
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.animateDecay
-import androidx.compose.animation.core.calculateTargetValue
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.splineBasedDecay
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
@@ -24,7 +17,6 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastMap
-import androidx.core.view.ViewCompat.animate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
+import ru.marat.pdf_reader.gestures.setBounds
 import ru.marat.pdf_reader.layout.saver.ReaderLayoutPositionSaver
 import ru.marat.pdf_reader.layout.state.LayoutInfo
 import ru.marat.pdf_reader.layout.state.PagePosition
@@ -53,8 +46,8 @@ class ReaderLayoutPositionState(
 
     private var decayAnimationX: Job? = null
     private var decayAnimationY: Job? = null
-    private val decay = SplineBasedFloatDecayAnimationSpec(density)
-
+    private val decayAnimSpec = SplineBasedFloatDecayAnimationSpec(density)
+    private val zoomAnimSpec = spring<Float>(stiffness = 300f)
 
     val layoutInfo = MutableStateFlow(
         LayoutInfo(
@@ -70,10 +63,11 @@ class ReaderLayoutPositionState(
         timeMillis: Long
     ): Boolean {
         val layoutInfo = layoutInfo.value
+        val panChange = panChange / layoutInfo.zoom
         val newOffsetX =
-            (layoutInfo.offsetX + panChange.x).coerceIn(-layoutInfo.calculateMaxOffsetX(), 0f)
+            (layoutInfo.offsetX + panChange.x).setBounds(layoutInfo.horizontalBounds)
         val newOffsetY =
-            (layoutInfo.offsetY + panChange.y).coerceIn(-layoutInfo.calculateMaxOffsetY(), 0f)
+            (layoutInfo.offsetY + panChange.y).setBounds(layoutInfo.verticalBounds)
         val canConsume = layoutInfo.offsetY != newOffsetY || layoutInfo.offsetX != newOffsetX
         println("canConsume: $canConsume")
         return if (canConsume) {
@@ -82,6 +76,47 @@ class ReaderLayoutPositionState(
             setOffset(newOffsetX, newOffsetY)
             true
         } else false
+    }
+
+    fun onZoom(
+        scope: CoroutineScope = this.scope,
+        zoomChange: Float,
+        centroid: Offset,
+        panChange: Offset
+    ) {
+        val layoutInfo = layoutInfo.value
+        val target = layoutInfo.copy(
+            zoom = layoutInfo.zoom * zoomChange,
+        )
+        this.layoutInfo.update {
+            target.copy(
+                offset = target.offset.copy(
+                    x = target.offsetX.setBounds(target.horizontalBounds),
+                    y = target.offsetY.setBounds(target.verticalBounds)
+                )
+            )
+        }
+    }
+
+    fun onDoubleTap(
+        scope: CoroutineScope = this.scope,
+        centroid: Offset
+    ) {
+        val currentScale = layoutInfo.value
+        scope.launch {
+            animate(
+                initialValue = currentScale.zoom,
+                targetValue = 1f,
+                animationSpec = zoomAnimSpec
+            ) { value, _ ->
+                layoutInfo.update {
+                    it.copy(
+                        zoom = value
+                    )
+                }
+            }
+        }
+
     }
 
     fun onGestureStart(
@@ -101,18 +136,18 @@ class ReaderLayoutPositionState(
             animateDecay(
                 initialValue = initialValue.y,
                 initialVelocity = velocity.y,
-                animationSpec = decay
+                animationSpec = decayAnimSpec
             ) { value, _ ->
-                setOffset(null, value.coerceIn(-layout.calculateMaxOffsetY(), 0f))
+                setOffset(null, value.setBounds(layout.verticalBounds))
             }
         }
         decayAnimationX = scope.launch {
             animateDecay(
                 initialValue = initialValue.x,
                 initialVelocity = velocity.x,
-                animationSpec = decay
+                animationSpec = decayAnimSpec
             ) { value, _ ->
-                setOffset(value.coerceIn(-layout.calculateMaxOffsetX(), 0f), null)
+                setOffset(value.setBounds(layout.horizontalBounds), null)
             }
         }
     }
@@ -200,13 +235,15 @@ class ReaderLayoutPositionState(
             if (newValue.isNaN()) return targetValue
             targetValue.copy(
                 offset = targetValue.offset.copy(
-                    x = newValue.setBounds(targetValue)
+                    x = newValue.setBounds(targetValue.horizontalBounds),
+                    y = targetValue.offsetY.setBounds(targetValue.verticalBounds)
                 )
             )
         } else {
             targetValue.copy(
                 offset = targetValue.offset.copy(
-                    y = targetValue.offsetY.setBounds(targetValue)
+                    x = targetValue.offsetX.setBounds(targetValue.horizontalBounds),
+                    y = targetValue.offsetY.setBounds(targetValue.verticalBounds)
                 )
             )
         }
@@ -223,31 +260,17 @@ class ReaderLayoutPositionState(
             offset =
                 if (layoutInfo.value.isVertical)
                     targetValue.offset.copy(
-                        y = newOffset.setBounds(targetValue),
-                        x = 0f
+                        y = newOffset.setBounds(targetValue.verticalBounds),
+                        x = targetValue.offsetX.setBounds(targetValue.horizontalBounds)
                     )
                 else targetValue.offset.copy(
-                    x = newOffset.setBounds(targetValue),
-                    y = 0f
+                    x = newOffset.setBounds(targetValue.horizontalBounds),
+                    y = targetValue.offsetY.setBounds(targetValue.verticalBounds)
                 )
         )
     }
 
-    private fun Float.setBounds(layoutInfo: LayoutInfo): Float {
-        return if (layoutInfo.isVertical) {
-            coerceIn(
-                -layoutInfo.calculateMaxOffsetY(),
-                0f
-            )
-        } else {
-            coerceIn(
-                -layoutInfo.calculateMaxOffsetX(),
-                0f
-            )
-        }
-    }
-
-    fun setOffset(x: Float?, y: Float?): LayoutInfo {
+    private fun setOffset(x: Float?, y: Float?): LayoutInfo {
         return layoutInfo.updateAndGet {
             it.copy(
                 offset = it.offset.copy(

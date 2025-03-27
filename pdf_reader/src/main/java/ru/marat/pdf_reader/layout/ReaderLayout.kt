@@ -10,12 +10,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.fastCoerceAtLeast
+import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +35,7 @@ fun ReaderLayout(
     modifier: Modifier = Modifier,
     layoutState: ReaderState,
     spacing: Dp = 8.dp,
+    onTap: () -> Unit
 ) {
     val scrollState by layoutState::positionsState
     val layoutInfo by scrollState.layoutInfo.collectAsState(Dispatchers.Main)
@@ -48,13 +52,19 @@ fun ReaderLayout(
                     )
                 )
             }
-            .readerGestures(scrollState)
+            .readerGestures(scrollState, onTap)
             .graphicsLayer {
-                translationX = layoutInfo.offsetX
-                translationY = layoutInfo.offsetY
+                translationX = layoutInfo.offsetX * layoutInfo.zoom
+                translationY = layoutInfo.offsetY * layoutInfo.zoom
+                scaleX = layoutInfo.zoom
+                scaleY = layoutInfo.zoom
+                transformOrigin =
+                    if (layoutInfo.isVertical) TransformOrigin(0.5f, 0f)
+                    else TransformOrigin(0f, 0.5f)
             },
         itemProvider = { itemProvider }
     ) { constraints: Constraints ->
+        var highestPage = 0f
         val items = if (layoutInfo.pages.isNotEmpty()) layoutInfo.loadedPages.fastMap { //todo
             Pair(
                 it, measure(
@@ -65,7 +75,10 @@ fun ReaderLayout(
                         minWidth = 0
                     )
                 )
-            )
+            ).also {
+                val height = it.second.maxOf { it.height }
+                if (height > highestPage) highestPage = height.toFloat()
+            }
         } else emptyList()
         layout(width = constraints.maxWidth, height = constraints.maxHeight) {
             val newViewportSize = Size(
@@ -82,15 +95,10 @@ fun ReaderLayout(
                     verticalLayoutPage(
                         placeable = placeable,
                         pos = pos,
-                        layoutState = scrollState,
-                        params = layoutInfo,
-                        viewportSize = newViewportSize
                     )
                 else horizontalLayoutPage(
                     placeable = placeable,
                     pos = pos,
-                    layoutState = scrollState,
-                    params = layoutInfo,
                     viewportSize = newViewportSize
                 )
             }
@@ -106,44 +114,21 @@ fun ReaderLayout(
 private fun Placeable.PlacementScope.verticalLayoutPage(
     placeable: Placeable,
     pos: PagePosition,
-    layoutState: ReaderLayoutPositionState,
-    params: LayoutInfo,
-    viewportSize: Size
 ) {
-    if (params.fullHeight > viewportSize.height) {
-        placeable.placeRelative(
-            0,
-            pos.start.roundToInt()
-        )
-    } else {
-        val centeringOffsetY =
-            ((viewportSize.height - params.fullHeight) / 2)
-        placeable.placeRelative(
-            0,
-            (pos.start + centeringOffsetY).roundToInt()
-        )
-    }
+    placeable.placeRelative(
+        0,
+        pos.start.roundToInt()
+    )
 }
 
 private fun Placeable.PlacementScope.horizontalLayoutPage(
     placeable: Placeable,
     pos: PagePosition,
-    layoutState: ReaderLayoutPositionState,
-    params: LayoutInfo,
     viewportSize: Size
 ) {
-    if (params.fullWidth > viewportSize.width) {
-        val y = (viewportSize.height - placeable.height) / 2
-        placeable.placeRelative(
-            pos.start.roundToInt(),
-            y.roundToInt()
-        )
-    } else {
-        val centeringOffsetY = ((viewportSize.height - placeable.height) / 2)
-        val centeringOffsetX = ((viewportSize.width - params.fullWidth) / 2)
-        placeable.placeRelative(
-            (pos.start + centeringOffsetX).roundToInt(),
-            centeringOffsetY.roundToInt()
-        )
-    }
+    val y = (viewportSize.height - placeable.height) / 2
+    placeable.placeRelative(
+        pos.start.roundToInt(),
+        y.roundToInt()
+    )
 }
