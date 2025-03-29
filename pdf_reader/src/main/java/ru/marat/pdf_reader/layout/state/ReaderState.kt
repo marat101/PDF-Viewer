@@ -10,6 +10,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.util.fastMap
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -38,6 +40,15 @@ class ReaderState internal constructor(
     savedPages: List<PageData>? = null
 ) {
 
+
+    companion object {
+        val readerCoroutineExceptionException = CoroutineExceptionHandler { context, throwable ->
+            println("READER EXCEPTION")
+            throwable.printStackTrace()
+            throw throwable
+        }
+    }
+
     private var pdfInfo: PdfInfo? = null
     private val pageLayoutHelper = object : PageLayoutHelper {
 
@@ -58,7 +69,7 @@ class ReaderState internal constructor(
     val pageCount: Int
         get() = pdfInfo?.pageCount ?: 0
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(Dispatchers.IO + readerCoroutineExceptionException)
 
     var loadingState by mutableStateOf<LoadingState>(LoadingState.Loading(0f))
         private set
@@ -69,7 +80,7 @@ class ReaderState internal constructor(
             val time = measureTimeMillis {
                 pdfInfo = pdfInfoProvider.get()
                 var counter = 0
-                val p = savedPages?.map {
+                val p = savedPages?.fastMap {
                     Page(
                         layoutHelper = pageLayoutHelper,
                         pageRenderer = pdfInfo!!.pageRenderer,
@@ -91,7 +102,7 @@ class ReaderState internal constructor(
                             }
                         }
                     }
-                }.map { it.await() }
+                }.fastMap { it.await() }
                 withContext(Dispatchers.Main.immediate) {
                     positionsState.layoutInfo.update { it.copy(pages = p) }
                     loadingState = LoadingState.Ready

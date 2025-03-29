@@ -64,7 +64,6 @@ fun ReaderLayout(
             },
         itemProvider = { itemProvider }
     ) { constraints: Constraints ->
-        var highestPage = 0f
         val items = if (layoutInfo.pages.isNotEmpty()) layoutInfo.loadedPages.fastMap { //todo
             Pair(
                 it, measure(
@@ -75,10 +74,7 @@ fun ReaderLayout(
                         minWidth = 0
                     )
                 )
-            ).also {
-                val height = it.second.maxOf { it.height }
-                if (height > highestPage) highestPage = height.toFloat()
-            }
+            )
         } else emptyList()
         layout(width = constraints.maxWidth, height = constraints.maxHeight) {
             val newViewportSize = Size(

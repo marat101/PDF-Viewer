@@ -3,6 +3,7 @@ package ru.marat.pdf_reader.gestures
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 fun Modifier.readerGestures(
     state: ReaderLayoutPositionState,
@@ -12,8 +13,8 @@ fun Modifier.readerGestures(
         detectTransformGestures(
             cancelIfZoomCanceled = false,
             onGesture = { centroid, pan, zoom, timeMillis ->
-                if (zoom != 1f) state.onZoom(this, zoom, centroid, pan)
-                else state.onScroll(this, pan, timeMillis)
+                launch { state.onZoom(this, zoom, centroid) }
+                launch { state.onScroll(this, pan, timeMillis) }
                 true //todo
             },
             onGestureStart = {

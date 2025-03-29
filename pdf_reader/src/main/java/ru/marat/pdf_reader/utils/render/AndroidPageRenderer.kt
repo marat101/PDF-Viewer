@@ -9,9 +9,12 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import ru.marat.pdf_reader.utils.pdf_info.RendererScope
+import ru.marat.pdf_reader.utils.render.AndroidPageRenderer.Companion.MAX_BITMAP_SIZE
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.ScaledPage
+import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 class AndroidPageRenderer(
@@ -54,6 +57,7 @@ class AndroidPageRenderer(
     ): ScaledPage {
         return rendererScope.use { pdfRenderer ->
             val page = pdfRenderer.openPage(index)
+            closeIfNotActive { page.close() }
 
             val scaledSize = scaledFragment.size * scale
             val bm: Bitmap = createBitmap(scaledSize.width, scaledSize.height)
@@ -65,6 +69,7 @@ class AndroidPageRenderer(
             val dy = (pageSize.top - scaledFragment.top) * scale
             matrix.postTranslate(dx, dy)
 
+            closeIfNotActive { page.close();bm.recycle(); matrix.reset() }
             page.render(
                 bm,
                 null,
@@ -73,7 +78,6 @@ class AndroidPageRenderer(
             )
 
             page.close()
-            pdfRenderer.close()
             matrix.reset()
             ScaledPage(
                 pageSize = pageSize,
@@ -82,23 +86,23 @@ class AndroidPageRenderer(
             )
         }
     }
+}
 
-    private suspend inline fun closeIfNotActive(crossinline beforeCancel: () -> Unit) {
-        coroutineScope {
-            if (!isActive) {
-                beforeCancel()
-                throw CancellationException()
-            }
+private suspend inline fun closeIfNotActive(crossinline beforeCancel: () -> Unit) {
+    coroutineScope {
+        if (!isActive) {
+            beforeCancel()
+            ensureActive()
         }
     }
+}
 
-    private fun createBitmap(width: Float, height: Float): Bitmap {
-        var intSize = IntSize(width.roundToInt(), height.roundToInt())
-        val sizeInBytes = intSize.width * intSize.height * 4
-        if (sizeInBytes > MAX_BITMAP_SIZE) {
-            val scale = MAX_BITMAP_SIZE / sizeInBytes.toDouble()
-            intSize = IntSize((intSize.width * scale).toInt(), (intSize.height * scale).toInt())
-        }
-        return Bitmap.createBitmap(intSize.width, intSize.height, Bitmap.Config.ARGB_8888)
+private fun createBitmap(width: Float, height: Float): Bitmap {
+    var intSize = IntSize(width.roundToInt(), height.roundToInt())
+    val sizeInBytes = intSize.width * intSize.height * 4
+    if (sizeInBytes > MAX_BITMAP_SIZE) {
+        val scale = MAX_BITMAP_SIZE / sizeInBytes.toDouble()
+        intSize = IntSize((intSize.width * scale).toInt(), (intSize.height * scale).toInt())
     }
+    return Bitmap.createBitmap(intSize.width, intSize.height, Bitmap.Config.ARGB_8888)
 }

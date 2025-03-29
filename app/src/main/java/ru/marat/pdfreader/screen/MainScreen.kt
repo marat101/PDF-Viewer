@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -47,7 +48,7 @@ import androidx.core.net.toUri
 
 @Composable
 fun MainScreen() {
-    var uri by rememberSaveable { mutableStateOf<String?>(null) }
+    var uri by rememberSaveable { mutableStateOf<String?>("content://com.android.providers.media.documents/document/document%3A1000000020") }
     val context = LocalContext.current
 
     var ofs by remember { mutableStateOf(Offset.Zero) }
@@ -65,7 +66,7 @@ fun MainScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-//            .scale(0.7f)
+            .scale(0.4f)
     ) {
         AnimatedVisibility(
             modifier = Modifier.zIndex(1f),

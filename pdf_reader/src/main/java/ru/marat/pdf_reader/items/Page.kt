@@ -7,9 +7,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntSize
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,7 +39,6 @@ class Page(
     val index: Int
 ) {
 
-    private var job: Job? = null
     private var scalingJob: Job? = null
 
     private val isLoaded = MutableStateFlow(false)
@@ -46,6 +47,7 @@ class Page(
 
     val size: StateFlow<Size> = layoutHelper.getPageSizeByIndex(index)
         .stateIn(scope, SharingStarted.Lazily, Size.Unspecified)
+
 
     val bitmap = isLoaded.flatMapLatest { loaded ->
         size.debounce(300).flatMapLatest { newLayoutSize ->
@@ -59,7 +61,7 @@ class Page(
                 emit(bm)
             }
         }
-    }.stateIn(scope, SharingStarted.Lazily, null)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(5000), null)
 
     var scaledPage by mutableStateOf<ScaledPage?>(null)
 
@@ -82,12 +84,20 @@ class Page(
         return (bm.height * bm.width) * 4L
     }
 
-    internal fun scalePage(scale: Float, scaleRect: Rect) {
-        if (scaledPage?.rect == scaleRect) return
+    internal fun drawPageFragment(scale: Float, fragment: Rect) {
+        if (scaledPage?.rect == fragment || size.value.isUnspecified) return
+        scalingJob?.cancel()
         scalingJob = scope.launch {
             kotlin.runCatching {
-                scaledPage = pageRenderer.renderPageFragment(index, size.value.toRect(), scaleRect, scale)
-            }.getOrElse { it.printStackTrace() }
+                println("page $index scaled fragment $fragment")
+                scaledPage =
+                    pageRenderer.renderPageFragment(index, size.value.toRect(), fragment, scale)
+                println("page $index scaled bitmap size ${scaledPage?.bitmap?.size()}")
+                println("page $index scaled bitmap size in bytes: ${sizeInBytes(scaledPage?.bitmap!!)}")
+            }.getOrElse {
+                it.printStackTrace()
+                throw it
+            }
         }
     }
 
@@ -104,8 +114,6 @@ class Page(
     }
 
     internal fun onDispose() {
-        job?.cancel()
-        job = null
         scalingJob?.cancel()
         scalingJob = null
         scaledPage = null

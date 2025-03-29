@@ -30,7 +30,9 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntSize
+import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.Dispatchers
+import kotlin.math.roundToInt
 
 internal val LocalPageColors = staticCompositionLocalOf { PageColors() }
 
@@ -77,16 +79,14 @@ fun PageLayout(
             }
         },
         measurePolicy = { measurables, constraints ->
-//            val screenSize = DpSize(configuration.screenWidthDp.dp, configuration.screenHeightDp.dp).toSize()
-//            placeByLayoutOrientation(page, constraints, measurables)
-            if (pageSize.isUnspecified) {
-                return@Layout layout(0, 0) {}
-            }
+            if (pageSize.isUnspecified) return@Layout layout(0, 0) {}
             val placeables = measurables.map {
-                it.measure(constraints.copy(
-                    maxHeight = pageSize.height.toInt(),
-                    maxWidth = pageSize.width.toInt()
-                ))
+                it.measure(
+                    constraints.copy(
+                        maxHeight = pageSize.height.toInt(),
+                        maxWidth = pageSize.width.toInt()
+                    )
+                )
             }
             layout(pageSize.width.toInt(), pageSize.height.toInt()) {
                 placeables.forEach {
@@ -120,7 +120,7 @@ private fun PageImage(
 ) {
     val painter = remember(bitmap!!, page.scaledPage) {
         PageBitmapPainter(
-            bitmap!!,
+            bitmap,
             page.scaledPage
         )
     }
@@ -165,6 +165,11 @@ private class PageBitmapPainter(
                         srcSize = scaledFragment.srcSize,
                         dstSize = scaledFragment.dstSize,
                         blendMode = BlendMode.Src
+                    )
+                    drawRect(
+                        color = Color.Yellow.copy(0.2f),
+//                        style = Stroke((6).dp.toPx()),
+                        size = scaledFragment.dstSize.toSize()
                     )
                 }
             }
