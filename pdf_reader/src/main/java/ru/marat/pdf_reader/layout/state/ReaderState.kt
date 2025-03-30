@@ -58,7 +58,7 @@ class ReaderState internal constructor(
 
         override fun getPageSizeByIndex(index: Int): Flow<Size> {
             return positionsState.layoutInfo.map {
-                it.pagePositions.getOrNull(index)?.size?.size ?: Size.Unspecified
+                it.pagePositions.getOrNull(index)?.rect?.size ?: Size.Unspecified
             }
         }
 
@@ -123,7 +123,7 @@ data class PagePosition(
     val index: Int,
     val start: Float,
     val end: Float,
-    val size: Rect,
+    val rect: Rect,
 )
 
 @Composable

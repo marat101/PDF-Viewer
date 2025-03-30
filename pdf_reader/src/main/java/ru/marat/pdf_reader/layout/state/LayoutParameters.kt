@@ -2,7 +2,6 @@ package ru.marat.pdf_reader.layout.state
 
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
@@ -13,23 +12,16 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Canvas
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toAndroidRectF
-import androidx.compose.ui.tooling.preview.Devices
-import androidx.compose.ui.tooling.preview.Devices.PIXEL_3A_XL
-import androidx.compose.ui.tooling.preview.Devices.PIXEL_TABLET
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastForEach
 import ru.marat.pdf_reader.gestures.Bounds
 import ru.marat.pdf_reader.gestures.setBounds
 import ru.marat.pdf_reader.gestures.setOffsetBounds
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
-import kotlin.math.absoluteValue
 
 @Immutable
 data class LayoutInfo(
@@ -74,31 +66,24 @@ data class LayoutInfo(
 
     fun drawPagesFragments() {
         if (loadedPages.isEmpty()) return
-        val size = (Size(viewportSize.maxDimension, viewportSize.maxDimension) * (1f / zoom)) * 1.2f
-        val vSize = (viewportSize * (1f / zoom))
+        val layoutPosition = getLayoutPosition()
 
-        val layoutPosition = getLayoutPosition(/*size, vSize*/)
-
-        println("current pos ${layoutPosition.toStringg()} size: $size")
+        println("current pos ${layoutPosition.toStringg()} size: ${layoutPosition.size}")
         loadedPages.fastForEach { pos ->
             val fragment = if (isVertical)
                 pos.getVerticalLayoutFragment(layoutPosition)
             else {
-                pos.getHorizontalLayoutFragment(size, vSize, layoutPosition)
+                pos.getHorizontalLayoutFragment(layoutPosition)
             } ?: return@fastForEach
             val page = pages.fastFirst { it.index == pos.index }
             page.drawPageFragment(zoom, fragment)
         }
     }
 
-    fun getLayoutPosition(
-//        drawSize: Size,
-//        vSize: Size
-    ): Rect  {
-//        val drawSize = (Size(viewportSize.maxDimension, viewportSize.maxDimension) * (1f / zoom)) * 1.2f
+    fun getLayoutPosition(): Rect {
         val vSize = (viewportSize * (1f / zoom))
-        val drawDistance = ((viewportSize.maxDimension * 0.65f) * (1f/zoom))
-        return if (isVertical) {
+        val drawDistance = ((viewportSize.maxDimension * 0.65f) * (1f / zoom))
+        return if (isVertical)
             Rect(
                 center = Offset(
                     x = (-offsetX + horizontalBounds.max) + vSize.center.x,
@@ -106,7 +91,7 @@ data class LayoutInfo(
                 ),
                 radius = drawDistance
             )
-        } else Rect(
+        else Rect(
             center = Offset(
                 y = (-offsetY + verticalBounds.max) + vSize.center.y,
                 x = -(offsetX - drawDistance) - (drawDistance - vSize.center.x)
@@ -119,47 +104,30 @@ data class LayoutInfo(
     private fun PagePosition.getVerticalLayoutFragment(
         layoutPosition: Rect
     ): Rect? {
-        return size
+        return rect
             .intersect(layoutPosition)
-            .translate(0f,-size.top)
+            .translate(0f, -rect.top)
             .also { println("page $index visible rect ${it.toStringg()}") }
     }
 
     private fun PagePosition.getHorizontalLayoutFragment(
-        drawSize: Size,
-        vSize: Size,
         layoutPosition: Rect
     ): Rect? {
-
-        return size
+        return rect
             .intersect(layoutPosition)
-            .translate(-size.left,-size.top)
+            .translate(-rect.left, -rect.top)
             .also { println("page $index visible rect ${it.toStringg()}") }
+    }
 
-        val verticalOffset = (drawSize.center.y - vSize.center.y).coerceAtMost(verticalBounds.max)
-        val result = size.translate(
-            0f, 0f
-//            start,
-//            (viewportSize.height - size.height) / 2
-        ).intersect(layoutPosition)
-            .also { println("current pos page $index ${it.toStringg()}") }
-
-
-        return result.translate(
-            -result.left,
-            -result.top
-        )
-            .also {
-                println("current pos pppage $index ${it.toStringg()}")
-                if (it.width <= 0f || it.height <= 0f) return null
-            }
+    fun clearScaledFragments() {
+        pages.forEach { it.removeScale() }
     }
 
     val verticalBounds by lazy(mode = LazyThreadSafetyMode.PUBLICATION) {
         if (viewportSize.isUnspecified) return@lazy Bounds.Zero
         if (isVertical) {
             if (fullHeight > viewportSize.height) {
-                val maxOffset = (fullHeight - (viewportSize.height * (1f / zoom))).coerceAtLeast(0f)
+                val maxOffset = (fullHeight - (viewportSize.height * (1f / zoom))).coerceAtLeast(0.1f)
                 Bounds(-maxOffset, 0f)
             } else {
                 if ((viewportSize.height * (1f / zoom) > fullHeight)) {
@@ -174,7 +142,7 @@ data class LayoutInfo(
         } else {
             if (loadedPages.isEmpty()) return@lazy Bounds(viewportSize.center.y)
             Bounds(
-                (loadedPages.maxOf { it.size.height / 2 } - (viewportSize.center.y * (1f / zoom)))
+                (loadedPages.maxOf { it.rect.height / 2 } - (viewportSize.center.y * (1f / zoom)))
                     .coerceAtLeast(0f)
             )
         }
@@ -203,7 +171,7 @@ data class LayoutInfo(
     }
 
     val zoomBounds by lazy(mode = LazyThreadSafetyMode.PUBLICATION) {
-        if (viewportSize.isUnspecified) return@lazy Bounds(1f,1f)
+        if (viewportSize.isUnspecified) return@lazy Bounds(1f, 1f)
         val minZoom = maxOf(
             MIN_ZOOM,
             (if (isVertical) viewportSize.height / fullHeight else viewportSize.width / fullWidth)
@@ -227,17 +195,18 @@ data class LayoutInfo(
 fun Test() {
 
     val pages = listOf(
-        Rect(top=0.0f, bottom=5138.823f, left=0.0f, right=1040.0f),
-        Rect(top=5150.823f, bottom=5888.368f, left=0.0f, right=1040.0f),
-        Rect(top=5900.368f, bottom=6637.913f, left=0.0f, right=1040.0f),
-        Rect(top=6649.913f, bottom=7387.458f, left=0.0f, right=1040.0f)
+        Rect(top = 0.0f, bottom = 5138.823f, left = 0.0f, right = 1040.0f),
+        Rect(top = 5150.823f, bottom = 5888.368f, left = 0.0f, right = 1040.0f),
+        Rect(top = 5900.368f, bottom = 6637.913f, left = 0.0f, right = 1040.0f),
+        Rect(top = 6649.913f, bottom = 7387.458f, left = 0.0f, right = 1040.0f)
     )
-    val layoutPosition = Rect(top=4684.5996f, bottom=7531.5996f, left=-903.5f, right=1943.5f)
+    val layoutPosition =
+        Rect(top = 4684.5996f, bottom = 7531.5996f, left = -903.5f, right = 1943.5f)
     androidx.compose.foundation.Canvas(
         modifier = Modifier.fillMaxSize()
     ) {
         drawContext.canvas.also {
-            it.scale(0.55f,0.55f)
+            it.scale(0.55f, 0.55f)
             val checkPoint =
                 it.nativeCanvas.saveLayer(null, Paint().apply {
 //                    blendMode = BlendMode.DstIn
@@ -255,7 +224,8 @@ fun Test() {
             it.drawRect(
                 paint = Paint().apply {
                     blendMode = BlendMode.DstIn
-                    color = Color.Blue; alpha = 0.5f },
+                    color = Color.Blue; alpha = 0.5f
+                },
                 rect = layoutPosition
             )
         }

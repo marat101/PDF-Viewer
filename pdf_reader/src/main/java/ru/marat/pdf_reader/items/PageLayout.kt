@@ -34,14 +34,13 @@ import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.Dispatchers
 import kotlin.math.roundToInt
 
-internal val LocalPageColors = staticCompositionLocalOf { PageColors() }
+val LocalPageColors = staticCompositionLocalOf { PageColors() }
 
 @Composable
 fun PageLayout(
     modifier: Modifier = Modifier,
     page: Page
 ) {
-    Dispatchers.Main.immediate
     val colors = LocalPageColors.current
     val bitmap by page.bitmap.collectAsState(initial = null, Dispatchers.Main)
     val pageSize by page.size.collectAsState()
@@ -50,13 +49,13 @@ fun PageLayout(
             if (bitmap != null || colors.alwaysShowBackground)
                 drawRect(colors.backgroundColor)
         }
-        .drawWithContent {
-            drawContent()
-            drawRect(
-                color = Color.Green,
-                style = Stroke(width = 4.dp.toPx())
-            )
-        }
+//        .drawWithContent {
+//            drawContent()
+//            drawRect(
+//                color = Color.Green,
+//                style = Stroke(width = 4.dp.toPx())
+//            )
+//        }
         .layoutId(page.index)
 
 
@@ -83,8 +82,8 @@ fun PageLayout(
             val placeables = measurables.map {
                 it.measure(
                     constraints.copy(
-                        maxHeight = pageSize.height.roundToInt(),
-                        maxWidth = pageSize.width.roundToInt()
+                        maxHeight = pageSize.height.toInt(),
+                        maxWidth = pageSize.width.toInt()
                     )
                 )
             }
@@ -142,10 +141,10 @@ private class PageBitmapPainter(
 
     override fun DrawScope.onDraw() {
         drawContext.canvas.nativeCanvas.let { canvas ->
-            drawRect(
-                color = Color.Yellow,
-                style = Stroke(width = 4.dp.toPx())
-            )
+//            drawRect(
+//                color = Color.Yellow,
+//                style = Stroke(width = 4.dp.toPx())
+//            )
             val checkpoint = canvas.saveLayer(null, null)
 
             drawImage(
@@ -166,11 +165,11 @@ private class PageBitmapPainter(
                         dstSize = scaledFragment.dstSize,
                         blendMode = BlendMode.Src
                     )
-                    drawRect(
-                        color = Color.Yellow.copy(0.2f),
-//                        style = Stroke((6).dp.toPx()),
-                        size = scaledFragment.dstSize.toSize()
-                    )
+//                    drawRect(
+//                        color = Color.Yellow.copy(0.2f),
+////                        style = Stroke((6).dp.toPx()),
+//                        size = scaledFragment.dstSize.toSize()
+//                    )
                 }
             }
             canvas.restoreToCount(checkpoint)

@@ -93,7 +93,6 @@ class Page(
                 scaledPage =
                     pageRenderer.renderPageFragment(index, size.value.toRect(), fragment, scale)
                 println("page $index scaled bitmap size ${scaledPage?.bitmap?.size()}")
-                println("page $index scaled bitmap size in bytes: ${sizeInBytes(scaledPage?.bitmap!!)}")
             }.getOrElse {
                 it.printStackTrace()
                 throw it

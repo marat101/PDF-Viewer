@@ -202,7 +202,7 @@ class ReaderLayoutPositionState(
                     index = it.index,
                     start = start,
                     end = end,
-                    size = Rect(
+                    rect = Rect(
                         top = start,
                         bottom = end,
                         left = 0f,
@@ -232,8 +232,8 @@ class ReaderLayoutPositionState(
                 val pos = PagePosition(
                     index = it.index,
                     start = fullWidth,
-                    end = pageSize.width + fullWidth,
-                    size = pageSize
+                    end = pageSize.right,
+                    rect = pageSize
                 )
                 fullWidth += (pos.end - pos.start) + if (it.index == pages.lastIndex) 0f else spacing
                 pos
@@ -252,6 +252,7 @@ class ReaderLayoutPositionState(
             anchor != null || prevValue.spacing != spacing || prevValue.viewportSize != viewportSize || prevValue.pagePositions.isEmpty()
         if (!needUpdate) return
         cancelDecay()
+        prevValue.clearScaledFragments()
         val (fullSize, positions) = calculatePositions(
             prevValue.pages,
             viewportSize,
