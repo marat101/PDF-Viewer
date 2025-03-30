@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.util.fastMap
@@ -57,7 +58,7 @@ class ReaderState internal constructor(
 
         override fun getPageSizeByIndex(index: Int): Flow<Size> {
             return positionsState.layoutInfo.map {
-                it.pagePositions.getOrNull(index)?.size ?: Size.Unspecified
+                it.pagePositions.getOrNull(index)?.size?.size ?: Size.Unspecified
             }
         }
 
@@ -122,7 +123,7 @@ data class PagePosition(
     val index: Int,
     val start: Float,
     val end: Float,
-    val size: Size,
+    val size: Rect,
 )
 
 @Composable

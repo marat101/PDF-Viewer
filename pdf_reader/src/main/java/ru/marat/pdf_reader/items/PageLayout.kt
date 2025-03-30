@@ -83,8 +83,8 @@ fun PageLayout(
             val placeables = measurables.map {
                 it.measure(
                     constraints.copy(
-                        maxHeight = pageSize.height.toInt(),
-                        maxWidth = pageSize.width.toInt()
+                        maxHeight = pageSize.height.roundToInt(),
+                        maxWidth = pageSize.width.roundToInt()
                     )
                 )
             }

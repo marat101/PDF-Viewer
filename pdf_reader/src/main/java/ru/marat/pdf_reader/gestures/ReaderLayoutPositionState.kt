@@ -10,6 +10,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
@@ -87,7 +88,13 @@ class ReaderLayoutPositionState(
         val layoutInfo = layoutInfo.value
         val newScale = (layoutInfo.zoom * zoomChange).setBounds(layoutInfo.zoomBounds)
         val zoomOffset =
-            calculateZoomOffset(layoutInfo.isVertical,layoutInfo.viewportSize, layoutInfo.zoom, newScale, centroid)
+            calculateZoomOffset(
+                layoutInfo.isVertical,
+                layoutInfo.viewportSize,
+                layoutInfo.zoom,
+                newScale,
+                centroid
+            )
         val target = layoutInfo.copy(
             zoom = newScale,
         )
@@ -118,11 +125,20 @@ class ReaderLayoutPositionState(
                 targetValue = newScale,
                 animationSpec = zoomAnimSpec
             ) { value, _ ->
-                val offset = calculateZoomOffset(currentState.isVertical, currentState.viewportSize,currentScale,value,centroid)
+                val offset = calculateZoomOffset(
+                    currentState.isVertical,
+                    currentState.viewportSize,
+                    currentScale,
+                    value,
+                    centroid
+                )
                 layoutInfo.update {
                     it.copy(
                         zoom = value.setBounds(it.zoomBounds),
-                        offset = (it.offset + offset).setOffsetBounds(it.horizontalBounds,it.verticalBounds)
+                        offset = (it.offset + offset).setOffsetBounds(
+                            it.horizontalBounds,
+                            it.verticalBounds
+                        )
                     )
                 }
                 currentScale = value
@@ -186,15 +202,31 @@ class ReaderLayoutPositionState(
                     index = it.index,
                     start = start,
                     end = end,
-                    size = Size(viewportSize.width, end - start)
+                    size = Rect(
+                        top = start,
+                        bottom = end,
+                        left = 0f,
+                        right = viewportSize.width
+                    )
                 )
                 fullHeight += (pos.end - pos.start) + if (it.index == pages.lastIndex) 0f else spacing
                 pos
             } else {
+                var height = viewportSize.width * it.ratio
+                var width = viewportSize.width
+                if (height > viewportSize.height) {
+                    val scale = (viewportSize.height / height)
+                    height *= scale
+                    width *= scale
+                }
+                val top = (viewportSize.height - height) / 2
                 var pageSize =
-                    Size(viewportSize.width, viewportSize.width * it.ratio)
-                if (pageSize.height > viewportSize.height)
-                    pageSize *= (viewportSize.height / pageSize.height)
+                    Rect(
+                        top = top,
+                        left = fullWidth,
+                        right = fullWidth + width,
+                        bottom = top + height
+                    )
 
                 if (pageSize.height > fullHeight) fullHeight = pageSize.height
                 val pos = PagePosition(
@@ -213,7 +245,7 @@ class ReaderLayoutPositionState(
     fun updateViewportSize(
         spacing: Float,
         viewportSize: Size
-    )  {
+    ) {
         val prevValue = layoutInfo.value
 
         val needUpdate =

@@ -14,12 +14,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
@@ -45,10 +56,15 @@ import ru.marat.pdf_reader.layout.ReaderLayout
 import ru.marat.pdf_reader.layout.state.LoadingState
 import ru.marat.pdf_reader.layout.state.rememberReaderLayoutState
 import androidx.core.net.toUri
+import ru.marat.pdf_reader.layout.state.LayoutInfo
+import ru.marat.pdf_reader.layout.state.toStringg
 
 @Composable
 fun MainScreen() {
-    var uri by rememberSaveable { mutableStateOf<String?>("content://com.android.providers.media.documents/document/document%3A1000000020") }
+    var uri by rememberSaveable { mutableStateOf<String?>(
+        null
+//        "content://com.android.providers.media.documents/document/document%3A1000000023"
+    ) }
     val context = LocalContext.current
 
     var ofs by remember { mutableStateOf(Offset.Zero) }
@@ -66,7 +82,7 @@ fun MainScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .scale(0.4f)
+//            .scale(0.65f)
     ) {
         AnimatedVisibility(
             modifier = Modifier.zIndex(1f),
@@ -102,6 +118,8 @@ fun MainScreen() {
                 ReaderLayout(
                     modifier = Modifier
                         .fillMaxSize()
+//                        .fillMaxWidth(0.65f)
+//                        .fillMaxHeight()
                         .drawBehind {
                             if (state.loadingState is LoadingState.Loading)
                                 drawArc(
@@ -116,6 +134,8 @@ fun MainScreen() {
                     layoutState = state,
                     onTap = { visible = !visible }
                 )
+//                val layoutInfo by state.positionsState.layoutInfo.collectAsState()
+//                LayoutInfo(layoutInfo)
                 ScrollToPageDialog(
                     visible = scrollDialogVisible,
                     onDismiss = { scrollDialogVisible = false },
@@ -129,6 +149,9 @@ fun MainScreen() {
                     launch {
                         state.positionsState.layoutInfo.collectLatest {
                             ofs = it.offset
+//                                .copy(
+//                                x = it.offsetX - it.horizontalBounds.max
+//                            )
                             zoom = it.zoom
                         }
                     }
@@ -154,6 +177,44 @@ fun MainScreen() {
                     orientation = it == Orientation.Vertical
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.LayoutInfo(layoutInfo: LayoutInfo) {
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .fillMaxWidth(0.35f)
+            .background(Color.White)
+            .align(Alignment.CenterEnd)
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "Viewport size:\n${layoutInfo.viewportSize}"
+        )
+        Text(
+            text = "Horizontal bounds:\n${layoutInfo.horizontalBounds}"
+        )
+        Text(
+            text = "Vertical bounds:\n${layoutInfo.verticalBounds}"
+        )
+        runCatching {
+            Text(
+                text = "Layout position:\n${layoutInfo.getLayoutPosition().toStringg()}\ncenter: ${layoutInfo.getLayoutPosition().center}"
+            )
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Loaded pages:")
+            layoutInfo.loadedPages.forEach {
+                Text("index: ${it.index}\n${it.size.toStringg()}")
+                Spacer(modifier = Modifier.size(3.dp))
+            }
         }
     }
 }
