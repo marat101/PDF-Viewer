@@ -66,8 +66,8 @@ data class LayoutInfo(
 
     fun drawPagesFragments() {
         if (loadedPages.isEmpty()) return
-        val layoutPosition = getLayoutPosition()
-
+        val scaledViewportSize = viewportSize * (1f / zoom)
+        val layoutPosition = getLayoutPosition(scaledViewportSize)
         println("current pos ${layoutPosition.toStringg()} size: ${layoutPosition.size}")
         loadedPages.fastForEach { pos ->
             val fragment = if (isVertical)
@@ -76,28 +76,32 @@ data class LayoutInfo(
                 pos.getHorizontalLayoutFragment(layoutPosition)
             } ?: return@fastForEach
             val page = pages.fastFirst { it.index == pos.index }
-            page.drawPageFragment(zoom, fragment)
+            page.setVisibleFragment(fragment)
         }
     }
 
-    fun getLayoutPosition(): Rect {
-        val vSize = (viewportSize * (1f / zoom))
-        val drawDistance = ((viewportSize.maxDimension * 0.65f) * (1f / zoom))
+    fun getLayoutPosition(
+        scaledViewportSize: Size = viewportSize * (1f / zoom)
+    ): Rect {
+        val vSize = scaledViewportSize
+        val drawDistance = ((viewportSize.maxDimension * 1.15f) * (1f / zoom))
         return if (isVertical)
             Rect(
                 center = Offset(
                     x = (-offsetX + horizontalBounds.max) + vSize.center.x,
                     y = -(offsetY - drawDistance) - (drawDistance - vSize.center.y)
                 ),
-                radius = drawDistance
+                radius = (drawDistance / 2)
             )
-        else Rect(
-            center = Offset(
-                y = (-offsetY + verticalBounds.max) + vSize.center.y,
-                x = -(offsetX - drawDistance) - (drawDistance - vSize.center.x)
-            ),
-            radius = drawDistance
-        )
+        else {
+            Rect(
+                center = Offset(
+                    y = -offsetY + viewportSize.center.y,
+                    x = -(offsetX - drawDistance) - (drawDistance - vSize.center.x)
+                ),
+                radius = (drawDistance / 2)
+            )
+        }
     }
 
 
@@ -107,7 +111,9 @@ data class LayoutInfo(
         return rect
             .intersect(layoutPosition)
             .translate(0f, -rect.top)
-            .also { println("page $index visible rect ${it.toStringg()}") }
+            .also {
+                println("page $index visible rect ${it.toStringg()}")
+            }
     }
 
     private fun PagePosition.getHorizontalLayoutFragment(
@@ -116,7 +122,9 @@ data class LayoutInfo(
         return rect
             .intersect(layoutPosition)
             .translate(-rect.left, -rect.top)
-            .also { println("page $index visible rect ${it.toStringg()}") }
+            .also {
+                println("page $index visible rect ${it.toStringg()}")
+            }
     }
 
     fun clearScaledFragments() {
@@ -127,7 +135,8 @@ data class LayoutInfo(
         if (viewportSize.isUnspecified) return@lazy Bounds.Zero
         if (isVertical) {
             if (fullHeight > viewportSize.height) {
-                val maxOffset = (fullHeight - (viewportSize.height * (1f / zoom))).coerceAtLeast(0.1f)
+                val maxOffset =
+                    (fullHeight - (viewportSize.height * (1f / zoom))).coerceAtLeast(0.1f)
                 Bounds(-maxOffset, 0f)
             } else {
                 if ((viewportSize.height * (1f / zoom) > fullHeight)) {

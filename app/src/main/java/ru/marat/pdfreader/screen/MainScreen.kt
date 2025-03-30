@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +33,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -70,7 +72,7 @@ fun MainScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-//            .scale(0.65f)
+            .scale(0.65f)
     ) {
         AnimatedVisibility(
             modifier = Modifier.zIndex(1f),
@@ -137,9 +139,6 @@ fun MainScreen() {
                     launch {
                         state.positionsState.layoutInfo.collectLatest {
                             ofs = it.offset
-//                                .copy(
-//                                x = it.offsetX - it.horizontalBounds.max
-//                            )
                             zoom = it.zoom
                         }
                     }
@@ -192,7 +191,7 @@ private fun BoxScope.LayoutInfo(layoutInfo: LayoutInfo) {
         )
         runCatching {
             Text(
-                text = "Layout position:\n${layoutInfo.getLayoutPosition().toStringg()}\ncenter: ${layoutInfo.getLayoutPosition().center}"
+                text = "Layout position:\n${layoutInfo.getLayoutPosition().toStringg()}\ncenter:\n${layoutInfo.getLayoutPosition().center.run { "x=$x\ny=$y" }}"
             )
         }
         Column(

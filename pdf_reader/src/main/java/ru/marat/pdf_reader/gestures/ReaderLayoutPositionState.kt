@@ -248,11 +248,15 @@ class ReaderLayoutPositionState(
     ) {
         val prevValue = layoutInfo.value
 
+        val sizeChanged = prevValue.viewportSize != viewportSize
+        val spacingChanged = prevValue.spacing != spacing
         val needUpdate =
-            anchor != null || prevValue.spacing != spacing || prevValue.viewportSize != viewportSize || prevValue.pagePositions.isEmpty()
+            anchor != null || spacingChanged || sizeChanged || prevValue.pagePositions.isEmpty()
         if (!needUpdate) return
         cancelDecay()
-        prevValue.clearScaledFragments()
+        if (sizeChanged || spacingChanged) {
+            prevValue.clearScaledFragments()
+        }
         val (fullSize, positions) = calculatePositions(
             prevValue.pages,
             viewportSize,

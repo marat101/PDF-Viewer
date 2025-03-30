@@ -95,7 +95,6 @@ fun ReaderLayout(
                 else horizontalLayoutPage(
                     placeable = placeable,
                     pos = pos,
-                    viewportSize = newViewportSize
                 )
             }
         }
@@ -120,11 +119,9 @@ private fun Placeable.PlacementScope.verticalLayoutPage(
 private fun Placeable.PlacementScope.horizontalLayoutPage(
     placeable: Placeable,
     pos: PagePosition,
-    viewportSize: Size
 ) {
-    val y = (viewportSize.height - placeable.height) / 2
     placeable.placeRelative(
         pos.start.toInt(),
-        y.toInt()
+        pos.rect.top.toInt()
     )
 }

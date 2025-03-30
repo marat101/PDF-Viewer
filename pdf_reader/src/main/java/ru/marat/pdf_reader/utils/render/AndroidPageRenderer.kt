@@ -56,7 +56,7 @@ class AndroidPageRenderer(
         scale: Float,
     ): ScaledPage {
         return rendererScope.use { pdfRenderer ->
-            val page = pdfRenderer.openPage(index)
+            val page = runCatching { pdfRenderer.openPage(index) }.getOrElse { throw CancellationException() }
             closeIfNotActive { page.close() }
 
             val scaledSize = scaledFragment.size * scale
@@ -98,7 +98,7 @@ private suspend inline fun closeIfNotActive(crossinline beforeCancel: () -> Unit
 }
 
 private fun createBitmap(width: Float, height: Float): Bitmap {
-    var intSize = IntSize(width.roundToInt(), height.roundToInt())
+    var intSize = IntSize(width.toInt(), height.toInt())
     val sizeInBytes = intSize.width * intSize.height * 4
     if (sizeInBytes > MAX_BITMAP_SIZE) {
         val scale = MAX_BITMAP_SIZE / sizeInBytes.toDouble()

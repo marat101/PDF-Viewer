@@ -16,7 +16,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CompositionLocalProvider(
-                LocalPageColors provides PageColors(backgroundColor = Color.Transparent)
+                LocalPageColors provides PageColors(backgroundColor = Color.White)
             ) {
                 MainScreen()
             }

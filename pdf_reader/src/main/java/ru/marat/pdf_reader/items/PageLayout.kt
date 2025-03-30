@@ -117,10 +117,11 @@ private fun PageImage(
     page: Page,
     bitmap: ImageBitmap?
 ) {
-    val painter = remember(bitmap!!, page.scaledPage) {
+    val scaledFragment by page.scaledPage.collectAsState()
+    val painter = remember(bitmap!!, scaledFragment) {
         PageBitmapPainter(
             bitmap,
-            page.scaledPage
+            scaledFragment
         )
     }
 
@@ -165,11 +166,11 @@ private class PageBitmapPainter(
                         dstSize = scaledFragment.dstSize,
                         blendMode = BlendMode.Src
                     )
-//                    drawRect(
-//                        color = Color.Yellow.copy(0.2f),
-////                        style = Stroke((6).dp.toPx()),
-//                        size = scaledFragment.dstSize.toSize()
-//                    )
+                    drawRect(
+                        color = Color.Yellow.copy(0.2f),
+//                        style = Stroke((6).dp.toPx()),
+                        size = scaledFragment.dstSize.toSize()
+                    )
                 }
             }
             canvas.restoreToCount(checkpoint)
