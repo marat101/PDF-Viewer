@@ -49,13 +49,6 @@ fun PageLayout(
             if (bitmap != null || colors.alwaysShowBackground)
                 drawRect(colors.backgroundColor)
         }
-//        .drawWithContent {
-//            drawContent()
-//            drawRect(
-//                color = Color.Green,
-//                style = Stroke(width = 4.dp.toPx())
-//            )
-//        }
         .layoutId(page.index)
 
 
@@ -128,7 +121,7 @@ private fun PageImage(
     Image(
         modifier = modifier,
         painter = painter,
-        contentDescription = null
+        contentDescription = "Page with scaled fragment"
     )
 }
 
@@ -142,10 +135,6 @@ private class PageBitmapPainter(
 
     override fun DrawScope.onDraw() {
         drawContext.canvas.nativeCanvas.let { canvas ->
-//            drawRect(
-//                color = Color.Yellow,
-//                style = Stroke(width = 4.dp.toPx())
-//            )
             val checkpoint = canvas.saveLayer(null, null)
 
             drawImage(
@@ -166,11 +155,11 @@ private class PageBitmapPainter(
                         dstSize = scaledFragment.dstSize,
                         blendMode = BlendMode.Src
                     )
-                    drawRect(
-                        color = Color.Yellow.copy(0.2f),
-//                        style = Stroke((6).dp.toPx()),
-                        size = scaledFragment.dstSize.toSize()
-                    )
+//                    drawRect(
+//                        color = Color.Yellow.copy(0.2f),
+// //                         style = Stroke((6).dp.toPx()),
+//                        size = scaledFragment.dstSize.toSize()
+//                    )
                 }
             }
             canvas.restoreToCount(checkpoint)

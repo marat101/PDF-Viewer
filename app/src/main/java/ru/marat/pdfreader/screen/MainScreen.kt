@@ -72,7 +72,7 @@ fun MainScreen() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .scale(0.65f)
+//            .scale(0.65f)
     ) {
         AnimatedVisibility(
             modifier = Modifier.zIndex(1f),

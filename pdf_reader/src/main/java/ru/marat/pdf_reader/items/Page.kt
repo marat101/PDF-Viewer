@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntSize
@@ -65,7 +66,7 @@ class Page(
 
     val scaledPage = isLoaded.flatMapLatest { loaded ->
         scaledRect.debounce {
-            if (it == null) 0 else 200
+            if (it == null || loaded == false) 0 else 200
         }.flatMapLatest { scaledRect ->
             flow {
                 if (!loaded || scaledRect == null || scaledRect.width <= 0 || scaledRect.height <= 0) {
@@ -75,7 +76,13 @@ class Page(
                 while (bitmap.value == null) {
                     currentCoroutineContext().ensureActive()
                 }
-                val bm = drawPageFragment(layoutHelper.parentLayoutInfo.value.zoom, scaledRect)
+                val bitmapSize = bitmap.value?.size() ?: return@flow
+                val size = size.value
+                if (size.isUnspecified) return@flow
+                val zoom = layoutHelper.parentLayoutInfo.value.zoom
+                if (bitmapSize.width >= (size.width * zoom)) return@flow
+
+                val bm = drawPageFragment(zoom, scaledRect)
                 emit(bm)
             }
         }

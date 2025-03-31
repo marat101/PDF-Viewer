@@ -136,7 +136,7 @@ data class LayoutInfo(
         if (isVertical) {
             if (fullHeight > viewportSize.height) {
                 val maxOffset =
-                    (fullHeight - (viewportSize.height * (1f / zoom))).coerceAtLeast(0.1f)
+                    (fullHeight - (viewportSize.height * (1f / zoom))).coerceAtLeast(0f)
                 Bounds(-maxOffset, 0f)
             } else {
                 if ((viewportSize.height * (1f / zoom) > fullHeight)) {
@@ -197,7 +197,7 @@ data class LayoutInfo(
 }
 
 @Preview(
-    heightDp = 9000,
+    heightDp = 3000,
     widthDp = 3000
 )
 @Composable

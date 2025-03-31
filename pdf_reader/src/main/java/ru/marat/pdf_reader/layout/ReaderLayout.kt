@@ -5,7 +5,9 @@ import androidx.compose.foundation.lazy.layout.LazyLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
@@ -25,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
 import ru.marat.pdf_reader.gestures.readerGestures
 import ru.marat.pdf_reader.layout.state.LayoutInfo
+import ru.marat.pdf_reader.layout.state.LoadingState
 import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.layout.state.ReaderState
 import kotlin.math.roundToInt
@@ -39,8 +42,8 @@ fun ReaderLayout(
 ) {
     val scrollState by layoutState::positionsState
     val layoutInfo by scrollState.layoutInfo.collectAsState(Dispatchers.Main)
-
-    val itemProvider = rememberPagesItemProvider(layoutInfo.pages)
+    val pages by remember { derivedStateOf { layoutInfo.pages } }
+    val itemProvider = rememberPagesItemProvider(pages)
     LazyLayout(
         modifier = modifier
             .drawWithContent {
@@ -64,18 +67,19 @@ fun ReaderLayout(
             },
         itemProvider = { itemProvider }
     ) { constraints: Constraints ->
-        val items = if (layoutInfo.pages.isNotEmpty()) layoutInfo.loadedPages.fastMap { //todo
-            Pair(
-                it, measure(
-                    it.index,
-                    constraints.copy(
-                        minHeight = 0,
-                        maxHeight = if (layoutInfo.isVertical) Constraints.Infinity else constraints.maxHeight,
-                        minWidth = 0
+        val items = if (pages.isNotEmpty())
+            layoutInfo.loadedPages.fastMap {
+                Pair(
+                    it, measure(
+                        it.index,
+                        constraints.copy(
+                            minHeight = 0,
+                            maxHeight = if (layoutInfo.isVertical) Constraints.Infinity else constraints.maxHeight,
+                            minWidth = 0
+                        )
                     )
                 )
-            )
-        } else emptyList()
+            } else emptyList()
         layout(width = constraints.maxWidth, height = constraints.maxHeight) {
             val newViewportSize = Size(
                 constraints.maxWidth.toFloat(),
