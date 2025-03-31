@@ -32,7 +32,7 @@ class ReaderLayoutPositionSaver(private val density: Density) :
             orientation = layoutInfo.orientation
         )
         return Json.encodeToString(restoreData)
-    }//todo restore for vertical
+    }
 
     @Serializable
     data class RestoreData(

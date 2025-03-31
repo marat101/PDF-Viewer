@@ -123,14 +123,6 @@ fun MainScreen() {
                                         width = 4.dp.toPx()
                                     )
                                 )
-//                                if (state.loadingState is LoadingState.Loading)
-//                                    drawArc(
-//                                        color = Color.Cyan,
-//                                        startAngle = -90f,
-//                                        sweepAngle = 360f * (state.loadingState as LoadingState.Loading).progress,
-//                                        useCenter = false,
-//                                        style = Stroke(width = 4.dp.toPx())
-//                                    )
                             },
                         spacing = 6.dp,
                         layoutState = state,

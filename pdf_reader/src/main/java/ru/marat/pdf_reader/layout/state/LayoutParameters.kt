@@ -59,7 +59,7 @@ data class LayoutInfo(
                         .translate(-offset.x, 0f)
                     r.overlaps(Rect(it.start, 0f, it.end, 1f))
                 }
-            }.also { println("loaded pages $it") }
+            }
         }
 
     val visiblePages: List<PagePosition> =
@@ -76,14 +76,13 @@ data class LayoutInfo(
                 )).toRect().translate(-offset.x, 0f)
                 r.overlaps(Rect(it.start, 0f, it.end, 1f))
             }
-        }.also { println("visible pages $it") }
+        }
 
 
     fun drawPagesFragments() {
         if (visiblePages.isEmpty()) return
         val scaledViewportSize = viewportSize * (1f / zoom)
         val layoutPosition = getLayoutPosition(scaledViewportSize)
-        println("current pos ${layoutPosition.toStringg()} size: ${layoutPosition.size}")
         visiblePages.fastForEach { pos ->
             val fragment = if (isVertical)
                 pos.getVerticalLayoutFragment(layoutPosition)
@@ -126,9 +125,6 @@ data class LayoutInfo(
         return rect
             .intersect(layoutPosition)
             .translate(0f, -rect.top)
-            .also {
-                println("page $index visible rect ${it.toStringg()}")
-            }
     }
 
     private fun PagePosition.getHorizontalLayoutFragment(
@@ -137,9 +133,6 @@ data class LayoutInfo(
         return rect
             .intersect(layoutPosition)
             .translate(-rect.left, -rect.top)
-            .also {
-                println("page $index visible rect ${it.toStringg()}")
-            }
     }
 
     fun clearScaledFragments() {

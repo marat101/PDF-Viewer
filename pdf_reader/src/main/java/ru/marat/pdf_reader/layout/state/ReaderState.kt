@@ -12,7 +12,6 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.util.fastMap
-import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -42,16 +41,6 @@ class ReaderState internal constructor(
     savedPages: List<PageData>? = null
 ) {
 
-
-    companion object {
-        private val readerCoroutineExceptionException =
-            CoroutineExceptionHandler { context, throwable ->
-                println("READER EXCEPTION")
-                throwable.printStackTrace()
-                throw throwable
-            }
-    }
-
     private var pdfInfo: PdfInfo? = null
     private val pageLayoutHelper = object : PageLayoutHelper {
         override val cache: PdfViewerCache?
@@ -74,7 +63,7 @@ class ReaderState internal constructor(
     val pageCount: Int
         get() = pdfInfo?.pageCount ?: 0
 
-    private val scope = CoroutineScope(Dispatchers.IO + readerCoroutineExceptionException)
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     var loadingState by mutableStateOf<LoadingState>(LoadingState.Loading(0f))
         private set

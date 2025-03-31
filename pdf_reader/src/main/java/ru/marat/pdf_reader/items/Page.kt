@@ -103,7 +103,6 @@ class Page(
                 index = index,
                 pageSize = newSize
             )
-            println("bitmap size ${bm.size()}")
             bm
         }.getOrElse {
             it.printStackTrace()
@@ -113,9 +112,7 @@ class Page(
 
     internal suspend fun drawPageFragment(scale: Float, fragment: Rect): ScaledPage =
         kotlin.runCatching {
-            println("page $index scaled fragment $fragment")
             pageRenderer.renderPageFragment(index, size.value.toRect(), fragment, scale)
-                .also { println("page $index scaled bitmap size ${it.bitmap.size()}") }
         }.getOrElse {
             it.printStackTrace()
             throw it
@@ -143,7 +140,7 @@ class Page(
     }
 }
 
-class ScaledPage private constructor( // todo constructor
+class ScaledPage private constructor( // todo constructor // wtf is this
     val rect: Rect,
     val topLeft: Offset,
     internal val bitmap: ImageBitmap,

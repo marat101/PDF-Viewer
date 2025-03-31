@@ -26,6 +26,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
@@ -40,7 +41,7 @@ import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Stable
 class ReaderLayoutPositionState(
-    private val density: Density,
+    density: Density,
     private var anchor: Anchor?,
     orientation: Orientation = Orientation.Vertical,
 ) {
@@ -61,7 +62,6 @@ class ReaderLayoutPositionState(
     private val velocityTracker = VelocityTracker()
 
     fun onScroll(
-        scope: CoroutineScope = this.scope,
         panChange: Offset,
         timeMillis: Long
     ): Boolean {
@@ -72,17 +72,14 @@ class ReaderLayoutPositionState(
         val newOffsetY =
             (layoutInfo.offsetY + panChange.y).setBounds(layoutInfo.verticalBounds)
         val canConsume = layoutInfo.offsetY != newOffsetY || layoutInfo.offsetX != newOffsetX
-        println("canConsume: $canConsume")
         return if (canConsume) {
             velocityTracker.addPosition(timeMillis, Offset(newOffsetX, newOffsetY))
-            println("onScroll: $newOffsetX, $newOffsetY")
             setOffset(newOffsetX, newOffsetY)
             true
         } else false
     }
 
     fun onZoom(
-        scope: CoroutineScope = this.scope,
         zoomChange: Float,
         centroid: Offset
     ) {
@@ -149,41 +146,39 @@ class ReaderLayoutPositionState(
 
     }
 
-    fun onGestureStart(
-        scope: CoroutineScope = this.scope
-    ) {
+    fun onGestureStart() {
         cancelDecay()
     }
 
-    fun onGestureEnd(
-        scope: CoroutineScope = this.scope
-    ) {
-        val velocity = velocityTracker.calculateVelocity()
-        velocityTracker.resetTracking()
-        val layout = layoutInfo.value
-        val initialValue = layout.offset
-        decayAnimationY = scope.launch {
-            animateDecay(
-                initialValue = initialValue.y,
-                initialVelocity = velocity.y,
-                animationSpec = decayAnimSpec
-            ) { value, _ ->
-                setOffset(null, value.setBounds(layout.verticalBounds))
+    suspend fun onGestureEnd() {
+        coroutineScope {
+            val velocity = velocityTracker.calculateVelocity()
+            velocityTracker.resetTracking()
+            val layout = layoutInfo.value
+            val initialValue = layout.offset
+            decayAnimationY = launch {
+                animateDecay(
+                    initialValue = initialValue.y,
+                    initialVelocity = velocity.y,
+                    animationSpec = decayAnimSpec
+                ) { value, _ ->
+                    setOffset(null, value.setBounds(layout.verticalBounds))
+                }
             }
-        }
-        decayAnimationX = scope.launch {
-            animateDecay(
-                initialValue = initialValue.x,
-                initialVelocity = velocity.x,
-                animationSpec = decayAnimSpec
-            ) { value, _ ->
-                setOffset(value.setBounds(layout.horizontalBounds), null)
+            decayAnimationX = launch {
+                animateDecay(
+                    initialValue = initialValue.x,
+                    initialVelocity = velocity.x,
+                    animationSpec = decayAnimSpec
+                ) { value, _ ->
+                    setOffset(value.setBounds(layout.horizontalBounds), null)
+                }
             }
-        }
-        this.scope.launch {
-            decayAnimationX?.join()
-            decayAnimationY?.join()
-            layoutInfo.value.drawPagesFragments()
+            scope.launch {
+                decayAnimationX?.join()
+                decayAnimationY?.join()
+                layoutInfo.value.drawPagesFragments()
+            }
         }
     }
 

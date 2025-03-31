@@ -13,15 +13,15 @@ fun Modifier.readerGestures(
         detectTransformGestures(
             cancelIfZoomCanceled = false,
             onGesture = { centroid, pan, zoom, timeMillis ->
-                launch { state.onZoom(this, zoom, centroid) }
-                launch { state.onScroll(this, pan, timeMillis) }
+                launch { state.onZoom(zoom, centroid) }
+                launch { state.onScroll(pan, timeMillis) }
                 true //todo
             },
             onGestureStart = {
-                state.onGestureStart(this)
+                state.onGestureStart()
             },
             onGestureEnd = {
-                state.onGestureEnd(this)
+                launch { state.onGestureEnd() }
             },
             onDoubleTap = {
                 state.onDoubleTap(this, it)
