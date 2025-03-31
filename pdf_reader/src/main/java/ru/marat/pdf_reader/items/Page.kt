@@ -1,20 +1,22 @@
 package ru.marat.viewplayground.pdf_reader.reader.layout.items
 
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +25,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.items.PageLayoutHelper
 import ru.marat.pdf_reader.utils.render.PageRenderer
 import kotlin.math.roundToInt
@@ -37,13 +40,6 @@ class Page(
     val index: Int
 ) {
 
-    private var job: Job? = null
-    private var scalingJob: Job? = null
-
-
-//    var viewportSize by mutableStateOf(Size.Unspecified)
-//        internal set
-
     private val isLoaded = MutableStateFlow(false)
 
     private val scope = CoroutineScope(Dispatchers.Default)
@@ -51,33 +47,62 @@ class Page(
     val size: StateFlow<Size> = layoutHelper.getPageSizeByIndex(index)
         .stateIn(scope, SharingStarted.Lazily, Size.Unspecified)
 
+    private val scaledRect = MutableStateFlow<Rect?>(null)
+
     val bitmap = isLoaded.flatMapLatest { loaded ->
-        size.debounce(300).flatMapLatest { newLayoutSize ->
+        size.debounce {
+            if (size.value == it) 0 else 300
+        }.flatMapLatest { newLayoutSize ->
             flow {
                 if (!loaded) {
                     emit(null)
                     return@flow
                 }
 
+                val savedBitmap = withContext(Dispatchers.IO) {
+                    layoutHelper.cache?.getPage(index)?.asImageBitmap()
+                }
+                emit(savedBitmap)
+                if (savedBitmap?.size() == newLayoutSize) return@flow
                 val bm = drawPage(newLayoutSize)
+                emit(bm)
+                bm?.asAndroidBitmap()?.let {
+                    withContext(Dispatchers.IO) { layoutHelper.cache?.savePage(index, it) }
+                }
+            }
+        }
+    }.stateIn(scope, SharingStarted.WhileSubscribed(3000), null)
+
+    val scaledPage = isLoaded.flatMapLatest { loaded ->
+        scaledRect.debounce {
+            if (it == null || loaded == false) 0 else 200
+        }.flatMapLatest { scaledRect ->
+            flow {
+                if (!loaded || scaledRect == null || scaledRect.width <= 0 || scaledRect.height <= 0) {
+                    emit(null)
+                    return@flow
+                }
+                while (bitmap.value == null) {
+                    currentCoroutineContext().ensureActive()
+                }
+                val bitmapSize = bitmap.value?.size() ?: return@flow
+                val size = size.value
+                if (size.isUnspecified) return@flow
+                val zoom = layoutHelper.parentLayoutInfo.value.zoom
+                if (bitmapSize.width >= (size.width * zoom)) return@flow
+
+                val bm = drawPageFragment(zoom, scaledRect)
                 emit(bm)
             }
         }
-    }.stateIn(scope, SharingStarted.Lazily, null)
-
-    var scaledPage by mutableStateOf<ScaledPage?>(null)
+    }.stateIn(scope, SharingStarted.WhileSubscribed(3000), null)
 
     private suspend fun drawPage(newSize: Size): ImageBitmap? {
         return kotlin.runCatching {
-            var bm: ImageBitmap? = null
-            pageRenderer.renderPage(
+            var bm: ImageBitmap = pageRenderer.renderPage(
                 index = index,
                 pageSize = newSize
-            ) {
-                bm = it
-                println("bitmap size ${bm?.size()}")
-                println("bitmap size in bytes: ${sizeInBytes(bm)}")
-            }
+            )
             bm
         }.getOrElse {
             it.printStackTrace()
@@ -85,25 +110,20 @@ class Page(
         }
     }
 
-    private fun sizeInBytes(bm: ImageBitmap): Long { //todo delete
-        return (bm.height * bm.width) * 4L
-    }
-
-    internal fun scalePage(scale: Float, scaleRect: Rect) {
-        if (scaledPage?.rect == scaleRect) return
-        scalingJob = scope.launch {
-            kotlin.runCatching {
-                pageRenderer.renderPageFragment(index, size.value.toRect(), scaleRect, scale) {
-                    scaledPage = it
-                }
-            }.getOrElse { it.printStackTrace() }
+    internal suspend fun drawPageFragment(scale: Float, fragment: Rect): ScaledPage =
+        kotlin.runCatching {
+            pageRenderer.renderPageFragment(index, size.value.toRect(), fragment, scale)
+        }.getOrElse {
+            it.printStackTrace()
+            throw it
         }
+
+    internal fun setVisibleFragment(rect: Rect) {
+        scaledRect.value = rect
     }
 
     internal fun removeScale() {
-        scalingJob?.cancel()
-        scalingJob = null
-        scaledPage = null
+        scaledRect.value = null
     }
 
     internal fun onLoad() {
@@ -113,18 +133,14 @@ class Page(
     }
 
     internal fun onDispose() {
-        job?.cancel()
-        job = null
-        scalingJob?.cancel()
-        scalingJob = null
-        scaledPage = null
         scope.launch(Dispatchers.Main) {
+            scaledRect.emit(null)
             isLoaded.emit(false)
         }
     }
 }
 
-class ScaledPage private constructor( // todo constructor
+class ScaledPage private constructor( // todo constructor // wtf is this
     val rect: Rect,
     val topLeft: Offset,
     internal val bitmap: ImageBitmap,

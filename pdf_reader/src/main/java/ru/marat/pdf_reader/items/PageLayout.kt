@@ -30,16 +30,17 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntSize
+import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.Dispatchers
+import kotlin.math.roundToInt
 
-internal val LocalPageColors = staticCompositionLocalOf { PageColors() }
+val LocalPageColors = staticCompositionLocalOf { PageColors() }
 
 @Composable
 fun PageLayout(
     modifier: Modifier = Modifier,
     page: Page
 ) {
-    Dispatchers.Main.immediate
     val colors = LocalPageColors.current
     val bitmap by page.bitmap.collectAsState(initial = null, Dispatchers.Main)
     val pageSize by page.size.collectAsState()
@@ -47,13 +48,6 @@ fun PageLayout(
         .drawBehind {
             if (bitmap != null || colors.alwaysShowBackground)
                 drawRect(colors.backgroundColor)
-        }
-        .drawWithContent {
-            drawContent()
-            drawRect(
-                color = Color.Green,
-                style = Stroke(width = 4.dp.toPx())
-            )
         }
         .layoutId(page.index)
 
@@ -77,16 +71,14 @@ fun PageLayout(
             }
         },
         measurePolicy = { measurables, constraints ->
-//            val screenSize = DpSize(configuration.screenWidthDp.dp, configuration.screenHeightDp.dp).toSize()
-//            placeByLayoutOrientation(page, constraints, measurables)
-            if (pageSize.isUnspecified) {
-                return@Layout layout(0, 0) {}
-            }
+            if (pageSize.isUnspecified) return@Layout layout(0, 0) {}
             val placeables = measurables.map {
-                it.measure(constraints.copy(
-                    maxHeight = pageSize.height.toInt(),
-                    maxWidth = pageSize.width.toInt()
-                ))
+                it.measure(
+                    constraints.copy(
+                        maxHeight = pageSize.height.toInt(),
+                        maxWidth = pageSize.width.toInt()
+                    )
+                )
             }
             layout(pageSize.width.toInt(), pageSize.height.toInt()) {
                 placeables.forEach {
@@ -118,17 +110,18 @@ private fun PageImage(
     page: Page,
     bitmap: ImageBitmap?
 ) {
-    val painter = remember(bitmap!!, page.scaledPage) {
+    val scaledFragment by page.scaledPage.collectAsState()
+    val painter = remember(bitmap!!, scaledFragment) {
         PageBitmapPainter(
-            bitmap!!,
-            page.scaledPage
+            bitmap,
+            scaledFragment
         )
     }
 
     Image(
         modifier = modifier,
         painter = painter,
-        contentDescription = null
+        contentDescription = "Page with scaled fragment"
     )
 }
 
@@ -142,10 +135,6 @@ private class PageBitmapPainter(
 
     override fun DrawScope.onDraw() {
         drawContext.canvas.nativeCanvas.let { canvas ->
-            drawRect(
-                color = Color.Yellow,
-                style = Stroke(width = 4.dp.toPx())
-            )
             val checkpoint = canvas.saveLayer(null, null)
 
             drawImage(
@@ -166,6 +155,11 @@ private class PageBitmapPainter(
                         dstSize = scaledFragment.dstSize,
                         blendMode = BlendMode.Src
                     )
+//                    drawRect(
+//                        color = Color.Yellow.copy(0.2f),
+// //                         style = Stroke((6).dp.toPx()),
+//                        size = scaledFragment.dstSize.toSize()
+//                    )
                 }
             }
             canvas.restoreToCount(checkpoint)

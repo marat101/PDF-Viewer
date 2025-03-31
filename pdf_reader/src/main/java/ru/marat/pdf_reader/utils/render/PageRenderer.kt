@@ -10,13 +10,11 @@ interface PageRenderer {
     suspend fun renderPage(
         index: Int,
         pageSize: Size,
-        onComplete: (ImageBitmap) -> Unit
-    )
+    ): ImageBitmap
     suspend fun renderPageFragment(
         index: Int,
         pageSize: Rect,
         scaledFragment: Rect,
         scale: Float,
-        onComplete: (ScaledPage) -> Unit
-    )
+    ): ScaledPage
 }
