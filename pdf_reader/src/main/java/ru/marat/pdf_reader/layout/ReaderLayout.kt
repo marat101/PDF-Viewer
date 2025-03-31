@@ -19,18 +19,12 @@ import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.fastCoerceAtLeast
-import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.Dispatchers
-import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
 import ru.marat.pdf_reader.gestures.readerGestures
-import ru.marat.pdf_reader.layout.state.LayoutInfo
-import ru.marat.pdf_reader.layout.state.LoadingState
 import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.layout.state.ReaderState
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -46,15 +40,6 @@ fun ReaderLayout(
     val itemProvider = rememberPagesItemProvider(pages)
     LazyLayout(
         modifier = modifier
-            .drawWithContent {
-                drawContent()
-                drawRect(
-                    color = Color.Red,
-                    style = Stroke(
-                        width = 4.dp.toPx()
-                    )
-                )
-            }
             .readerGestures(scrollState, onTap)
             .graphicsLayer {
                 translationX = layoutInfo.offsetX * layoutInfo.zoom

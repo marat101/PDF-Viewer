@@ -7,26 +7,25 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.items.PageLayoutHelper
 import ru.marat.pdf_reader.utils.render.PageRenderer
 import kotlin.math.roundToInt
@@ -51,15 +50,25 @@ class Page(
     private val scaledRect = MutableStateFlow<Rect?>(null)
 
     val bitmap = isLoaded.flatMapLatest { loaded ->
-        size.debounce(300).flatMapLatest { newLayoutSize ->
+        size.debounce {
+            if (size.value == it) 0 else 300
+        }.flatMapLatest { newLayoutSize ->
             flow {
                 if (!loaded) {
                     emit(null)
                     return@flow
                 }
 
+                val savedBitmap = withContext(Dispatchers.IO) {
+                    layoutHelper.cache?.getPage(index)?.asImageBitmap()
+                }
+                emit(savedBitmap)
+                if (savedBitmap?.size() == newLayoutSize) return@flow
                 val bm = drawPage(newLayoutSize)
                 emit(bm)
+                bm?.asAndroidBitmap()?.let {
+                    withContext(Dispatchers.IO) { layoutHelper.cache?.savePage(index, it) }
+                }
             }
         }
     }.stateIn(scope, SharingStarted.WhileSubscribed(3000), null)

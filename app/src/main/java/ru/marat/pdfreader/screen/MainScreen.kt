@@ -19,10 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +33,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -51,10 +52,12 @@ import ru.marat.pdf_reader.layout.state.toStringg
 
 @Composable
 fun MainScreen() {
-    var uri by rememberSaveable { mutableStateOf<String?>(
-        null
+    var uri by rememberSaveable {
+        mutableStateOf<String?>(
+            null
 //        "content://com.android.providers.media.documents/document/document%3A1000000023"
-    ) }
+        )
+    }
     val context = LocalContext.current
 
     var ofs by remember { mutableStateOf(Offset.Zero) }
@@ -105,25 +108,50 @@ fun MainScreen() {
         ) {
             if (uri != null) {
                 val state = rememberReaderLayoutState(uri!!.toUri())
-                ReaderLayout(
-                    modifier = Modifier
-                        .fillMaxSize()
+                Box(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    ReaderLayout(
+                        modifier = Modifier
+                            .fillMaxSize()
 //                        .fillMaxWidth(0.65f)
 //                        .fillMaxHeight()
-                        .drawBehind {
-                            if (state.loadingState is LoadingState.Loading)
-                                drawArc(
-                                    color = Color.Cyan,
-                                    startAngle = -90f,
-                                    sweepAngle = 360f * (state.loadingState as LoadingState.Loading).progress,
-                                    useCenter = false,
-                                    style = Stroke(width = 4.dp.toPx())
+                            .drawBehind {
+                                drawRect(
+                                    color = Color.Red,
+                                    style = Stroke(
+                                        width = 4.dp.toPx()
+                                    )
                                 )
-                        },
-                    spacing = 6.dp,
-                    layoutState = state,
-                    onTap = { visible = !visible }
-                )
+//                                if (state.loadingState is LoadingState.Loading)
+//                                    drawArc(
+//                                        color = Color.Cyan,
+//                                        startAngle = -90f,
+//                                        sweepAngle = 360f * (state.loadingState as LoadingState.Loading).progress,
+//                                        useCenter = false,
+//                                        style = Stroke(width = 4.dp.toPx())
+//                                    )
+                            },
+                        spacing = 6.dp,
+                        layoutState = state,
+                        onTap = { visible = !visible }
+                    )
+                    if (state.loadingState is LoadingState.Loading)
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(
+                                progress = {
+                                    (state.loadingState as LoadingState.Loading).progress
+                                }
+                            )
+                            Text(
+                                text = "Обработка…",
+                                color = Color.White
+                            )
+                        }
+                }
 //                val layoutInfo by state.positionsState.layoutInfo.collectAsState()
 //                LayoutInfo(layoutInfo)
                 ScrollToPageDialog(
@@ -191,14 +219,16 @@ private fun BoxScope.LayoutInfo(layoutInfo: LayoutInfo) {
         )
         runCatching {
             Text(
-                text = "Layout position:\n${layoutInfo.getLayoutPosition().toStringg()}\ncenter:\n${layoutInfo.getLayoutPosition().center.run { "x=$x\ny=$y" }}"
+                text = "Layout position:\n${
+                    layoutInfo.getLayoutPosition().toStringg()
+                }\ncenter:\n${layoutInfo.getLayoutPosition().center.run { "x=$x\ny=$y" }}"
             )
         }
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(text = "Loaded pages:")
-            layoutInfo.loadedPages.forEach {
+            layoutInfo.visiblePages.forEach {
                 Text("index: ${it.index}\n${it.rect.toStringg()}")
                 Spacer(modifier = Modifier.size(3.dp))
             }

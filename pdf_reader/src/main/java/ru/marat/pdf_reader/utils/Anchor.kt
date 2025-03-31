@@ -12,7 +12,7 @@ data class Anchor(
 
 
 fun createAnchor(layoutInfo: LayoutInfo): Anchor? {
-    val firstVisiblePage = layoutInfo.loadedPages.firstOrNull() ?: return null
+    val firstVisiblePage = layoutInfo.visiblePages.firstOrNull() ?: return null
     val pageSize = firstVisiblePage.end.absoluteValue - firstVisiblePage.start.absoluteValue
     val l = (if (layoutInfo.isVertical) layoutInfo.offsetY.absoluteValue
     else layoutInfo.offsetX.absoluteValue) - firstVisiblePage.start.absoluteValue

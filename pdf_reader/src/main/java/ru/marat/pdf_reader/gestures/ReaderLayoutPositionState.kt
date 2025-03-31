@@ -25,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
@@ -390,7 +391,9 @@ class ReaderLayoutPositionState(
 
 
 @Composable
-fun rememberReaderLayoutPositionState(vararg keys: Any?): ReaderLayoutPositionState {
+fun rememberReaderLayoutPositionState(
+    vararg keys: Any?
+): ReaderLayoutPositionState {
     val density = LocalDensity.current
     val k = remember(keys) { keys.toMutableList().apply { add(density) } }
     return rememberSaveable(

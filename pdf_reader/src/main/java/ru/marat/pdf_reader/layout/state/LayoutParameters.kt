@@ -1,21 +1,13 @@
 package ru.marat.pdf_reader.layout.state
 
 import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Paint
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastForEach
 import ru.marat.pdf_reader.gestures.Bounds
@@ -50,7 +42,29 @@ data class LayoutInfo(
 
     val loadedPages: List<PagePosition> =
         if (viewportSize.isUnspecified) emptyList()
-        else pagePositions.filter {
+        else {
+            val size =
+                if (isVertical) viewportSize.height * (1f / zoom) else viewportSize.width * (1f / zoom)
+            pagePositions.filter {
+                if (isVertical) {
+                    val r = (viewportSize.copy(height = size))
+                        .toRect()
+                        .inflate(size * 0.3f)
+                        .translate(0f, -offset.y)
+                    r.overlaps(Rect(0f, it.start, 1f, it.end))
+                } else {
+                    val r = (viewportSize.copy(width = size))
+                        .toRect()
+                        .inflate(size * 0.3f)
+                        .translate(-offset.x, 0f)
+                    r.overlaps(Rect(it.start, 0f, it.end, 1f))
+                }
+            }.also { println("loaded pages $it") }
+        }
+
+    val visiblePages: List<PagePosition> =
+        if (viewportSize.isUnspecified) emptyList()
+        else loadedPages.filter {
             if (isVertical) {
                 val r = (viewportSize.copy(
                     height = viewportSize.height * (1f / zoom)
@@ -62,14 +76,15 @@ data class LayoutInfo(
                 )).toRect().translate(-offset.x, 0f)
                 r.overlaps(Rect(it.start, 0f, it.end, 1f))
             }
-        }.also { println("loaded pages $it") }
+        }.also { println("visible pages $it") }
+
 
     fun drawPagesFragments() {
-        if (loadedPages.isEmpty()) return
+        if (visiblePages.isEmpty()) return
         val scaledViewportSize = viewportSize * (1f / zoom)
         val layoutPosition = getLayoutPosition(scaledViewportSize)
         println("current pos ${layoutPosition.toStringg()} size: ${layoutPosition.size}")
-        loadedPages.fastForEach { pos ->
+        visiblePages.fastForEach { pos ->
             val fragment = if (isVertical)
                 pos.getVerticalLayoutFragment(layoutPosition)
             else {
@@ -149,9 +164,9 @@ data class LayoutInfo(
                 }
             }
         } else {
-            if (loadedPages.isEmpty()) return@lazy Bounds(viewportSize.center.y)
+            if (visiblePages.isEmpty()) return@lazy Bounds(viewportSize.center.y)
             Bounds(
-                (loadedPages.maxOf { it.rect.height / 2 } - (viewportSize.center.y * (1f / zoom)))
+                (visiblePages.maxOf { it.rect.height / 2 } - (viewportSize.center.y * (1f / zoom)))
                     .coerceAtLeast(0f)
             )
         }
@@ -194,51 +209,6 @@ data class LayoutInfo(
         zoom = zoom.setBounds(zoomBounds),
         offset = offset.setOffsetBounds(horizontalBounds, verticalBounds)
     )
-}
-
-@Preview(
-    heightDp = 3000,
-    widthDp = 3000
-)
-@Composable
-fun Test() {
-
-    val pages = listOf(
-        Rect(top = 0.0f, bottom = 5138.823f, left = 0.0f, right = 1040.0f),
-        Rect(top = 5150.823f, bottom = 5888.368f, left = 0.0f, right = 1040.0f),
-        Rect(top = 5900.368f, bottom = 6637.913f, left = 0.0f, right = 1040.0f),
-        Rect(top = 6649.913f, bottom = 7387.458f, left = 0.0f, right = 1040.0f)
-    )
-    val layoutPosition =
-        Rect(top = 4684.5996f, bottom = 7531.5996f, left = -903.5f, right = 1943.5f)
-    androidx.compose.foundation.Canvas(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        drawContext.canvas.also {
-            it.scale(0.55f, 0.55f)
-            val checkPoint =
-                it.nativeCanvas.saveLayer(null, Paint().apply {
-//                    blendMode = BlendMode.DstIn
-                }.asFrameworkPaint())
-            pages.forEach { rect ->
-                it.drawRect(
-                    paint = Paint().apply { color = Color.Yellow },
-                    rect = rect
-                )
-            }
-
-            it.nativeCanvas.restoreToCount(checkPoint)
-
-
-            it.drawRect(
-                paint = Paint().apply {
-                    blendMode = BlendMode.DstIn
-                    color = Color.Blue; alpha = 0.5f
-                },
-                rect = layoutPosition
-            )
-        }
-    }
 }
 
 fun Rect.toStringg() = "Rect(top=${top}f, bottom=${bottom}f, left=${left}f, right=${right}f)"
