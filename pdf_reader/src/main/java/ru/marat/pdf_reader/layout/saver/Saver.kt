@@ -14,14 +14,19 @@ import ru.marat.pdf_reader.utils.createAnchor
 import ru.marat.pdf_reader.utils.pdf_info.PdfInfoProvider
 
 
-class ReaderLayoutPositionSaver(private val density: Density) :
+class ReaderLayoutPositionSaver(
+    private val minZoom: Float,
+    private val maxZoom: Float,
+    private val density: Density) :
     Saver<ReaderLayoutPositionState, String> {
     override fun restore(value: String): ReaderLayoutPositionState? {
         val value = Json.decodeFromString(RestoreData.serializer(), value)
         return ReaderLayoutPositionState(
             density = density,
             anchor = value.anchor,
-            orientation = value.orientation
+            orientation = value.orientation,
+            minZoom = minZoom,
+            maxZoom = maxZoom
         )
     }
 

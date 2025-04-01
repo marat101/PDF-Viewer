@@ -49,7 +49,7 @@ class Page(
 
     private val scaledRect = MutableStateFlow<Rect?>(null)
 
-    val bitmap = isLoaded.flatMapLatest { loaded ->
+    internal val bitmap = isLoaded.flatMapLatest { loaded ->
         size.debounce {
             if (size.value == it) 0 else 300
         }.flatMapLatest { newLayoutSize ->
@@ -110,7 +110,7 @@ class Page(
         }
     }
 
-    internal suspend fun drawPageFragment(scale: Float, fragment: Rect): ScaledPage =
+    private suspend fun drawPageFragment(scale: Float, fragment: Rect): ScaledPage =
         kotlin.runCatching {
             pageRenderer.renderPageFragment(index, size.value.toRect(), fragment, scale)
         }.getOrElse {

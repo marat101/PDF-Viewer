@@ -9,11 +9,8 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.unit.Constraints
@@ -25,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import ru.marat.pdf_reader.gestures.readerGestures
 import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.layout.state.ReaderState
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -101,7 +99,7 @@ private fun Placeable.PlacementScope.verticalLayoutPage(
 ) {
     placeable.placeRelative(
         0,
-        pos.start.toInt()
+        pos.start.roundToInt()
     )
 }
 
@@ -110,7 +108,7 @@ private fun Placeable.PlacementScope.horizontalLayoutPage(
     pos: PagePosition,
 ) {
     placeable.placeRelative(
-        pos.start.toInt(),
-        pos.rect.top.toInt()
+        pos.start.roundToInt(),
+        pos.rect.top.roundToInt()
     )
 }

@@ -1,6 +1,7 @@
 package ru.marat.pdf_reader.layout.state
 
 import android.net.Uri
+import androidx.annotation.FloatRange
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -35,7 +36,7 @@ import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
 
 @Stable
 class ReaderState internal constructor(
-    internal val pdfViewerCache: PdfViewerCache? = null,
+    val pdfViewerCache: PdfViewerCache? = null,
     val positionsState: ReaderLayoutPositionState,
     pdfInfoProvider: PdfInfoProvider,
     savedPages: List<PageData>? = null
@@ -99,7 +100,7 @@ class ReaderState internal constructor(
             }.fastMap { it.await() }
             pdfViewerCache?.saveBoundaries(p)
             withContext(Dispatchers.Main.immediate) {
-                positionsState.layoutInfo.update { it.copy(pages = p) }
+                positionsState.setPages(p)
                 loadingState = LoadingState.Ready
             }
         }
@@ -121,6 +122,10 @@ data class PagePosition(
 @Composable
 fun rememberReaderLayoutState(
     firstVisiblePageIndex: Int? = null,
+    @FloatRange(from = 0.1, to = 1.0)
+    minZoom: Float = LayoutInfo.MIN_ZOOM,
+    @FloatRange(from = 1.0, to = LayoutInfo.MAX_ZOOM.toDouble())
+    maxZoom: Float = LayoutInfo.MAX_ZOOM,
     uri: Uri,
     enableCache: Boolean = true
 ): ReaderState {
@@ -129,7 +134,8 @@ fun rememberReaderLayoutState(
     val cache = remember(uri, enableCache) {
         if (enableCache) PdfViewerCache(context, uri.hashCode().toString()) else null
     }
-    val scrollState = rememberReaderLayoutPositionState(firstVisiblePageIndex, pdfInfo, cache)
+    val scrollState =
+        rememberReaderLayoutPositionState(firstVisiblePageIndex, minZoom, maxZoom, pdfInfo, cache)
     return rememberSaveable(
         inputs = arrayOf(pdfInfo, cache),
         saver = ReaderSaver(pdfInfo, scrollState, cache)

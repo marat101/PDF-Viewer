@@ -11,14 +11,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,22 +32,19 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.core.net.toUri
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.marat.pdf_reader.layout.ReaderLayout
+import ru.marat.pdf_reader.layout.state.LayoutInfo
 import ru.marat.pdf_reader.layout.state.LoadingState
 import ru.marat.pdf_reader.layout.state.rememberReaderLayoutState
-import androidx.core.net.toUri
-import ru.marat.pdf_reader.layout.state.LayoutInfo
-import ru.marat.pdf_reader.layout.state.toStringg
 
 @Composable
 fun MainScreen() {
@@ -107,7 +103,11 @@ fun MainScreen() {
                 .fillMaxWidth()
         ) {
             if (uri != null) {
-                val state = rememberReaderLayoutState(10,uri!!.toUri())
+                val state = rememberReaderLayoutState(
+                    firstVisiblePageIndex = null,
+                    minZoom = 0.2f,
+                    uri = uri!!.toUri()
+                )
                 Box(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -143,6 +143,11 @@ fun MainScreen() {
                                 color = Color.White
                             )
                         }
+                    Button(
+                        onClick = { state.pdfViewerCache?.clear() }
+                    ) {
+                        Text("clear cache")
+                    }
                 }
 //                val layoutInfo by state.positionsState.layoutInfo.collectAsState()
 //                LayoutInfo(layoutInfo)
@@ -162,6 +167,7 @@ fun MainScreen() {
                             zoom = it.zoom
                         }
                     }
+                    var a = false
                     launch {
                         snapshotFlow { orientation }.collectLatest {
                             state.positionsState.setOrientation(if (orientation) Orientation.Vertical else Orientation.Horizontal)
@@ -209,21 +215,21 @@ private fun BoxScope.LayoutInfo(layoutInfo: LayoutInfo) {
         Text(
             text = "Vertical bounds:\n${layoutInfo.verticalBounds}"
         )
-        runCatching {
-            Text(
-                text = "Layout position:\n${
-                    layoutInfo.getLayoutPosition().toStringg()
-                }\ncenter:\n${layoutInfo.getLayoutPosition().center.run { "x=$x\ny=$y" }}"
-            )
-        }
-        Column(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(text = "Loaded pages:")
-            layoutInfo.visiblePages.forEach {
-                Text("index: ${it.index}\n${it.rect.toStringg()}")
-                Spacer(modifier = Modifier.size(3.dp))
-            }
-        }
+//        runCatching {
+//            Text(
+//                text = "Layout position:\n${
+//                    layoutInfo.getLayoutPosition().toStringg()
+//                }\ncenter:\n${layoutInfo.getLayoutPosition().center.run { "x=$x\ny=$y" }}"
+//            )
+//        }
+//        Column(
+//            modifier = Modifier.fillMaxWidth()
+//        ) {
+//            Text(text = "Loaded pages:")
+//            layoutInfo.visiblePages.forEach {
+//                Text("index: ${it.index}\n${it.rect.toStringg()}")
+//                Spacer(modifier = Modifier.size(3.dp))
+//            }
+//        }
     }
 }
