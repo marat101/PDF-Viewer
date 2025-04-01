@@ -17,9 +17,9 @@ publishing {
 
             signing {
                 useInMemoryPgpKeys(
-                    System.getenv("SIGNING_KEY_ID"),
-                    System.getenv("SIGNING_PASSWORD"),
-                    System.getenv("GPG_KEY_CONTENTS")
+                    System.getenv("signingInMemoryKeyId"),
+                    System.getenv("signingInMemoryKey"),
+                    System.getenv("signingInMemoryKeyPassword")
                 )
             }
 
