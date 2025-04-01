@@ -250,7 +250,7 @@ class ReaderLayoutPositionState(
             anchor != null || spacingChanged || sizeChanged || prevValue.pagePositions.isEmpty()
         if (!needUpdate) return
         cancelDecay()
-        if (sizeChanged || spacingChanged) {
+        if (sizeChanged) {
             prevValue.clearScaledFragments()
         }
         val (fullSize, positions) = calculatePositions(
@@ -387,6 +387,7 @@ class ReaderLayoutPositionState(
 
 @Composable
 fun rememberReaderLayoutPositionState(
+    firstVisiblePageIndex: Int? = null,
     vararg keys: Any?
 ): ReaderLayoutPositionState {
     val density = LocalDensity.current
@@ -395,6 +396,9 @@ fun rememberReaderLayoutPositionState(
         inputs = k.toTypedArray(),
         saver = ReaderLayoutPositionSaver(density)
     ) {
-        ReaderLayoutPositionState(density, null)
+        ReaderLayoutPositionState(
+            density,
+            if (firstVisiblePageIndex != null) Anchor(firstVisiblePageIndex, 0f) else null
+        )
     }
 }

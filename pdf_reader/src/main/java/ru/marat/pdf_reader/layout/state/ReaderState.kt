@@ -120,6 +120,7 @@ data class PagePosition(
 
 @Composable
 fun rememberReaderLayoutState(
+    firstVisiblePageIndex: Int? = null,
     uri: Uri,
     enableCache: Boolean = true
 ): ReaderState {
@@ -128,7 +129,7 @@ fun rememberReaderLayoutState(
     val cache = remember(uri, enableCache) {
         if (enableCache) PdfViewerCache(context, uri.hashCode().toString()) else null
     }
-    val scrollState = rememberReaderLayoutPositionState(pdfInfo, cache)
+    val scrollState = rememberReaderLayoutPositionState(firstVisiblePageIndex, pdfInfo, cache)
     return rememberSaveable(
         inputs = arrayOf(pdfInfo, cache),
         saver = ReaderSaver(pdfInfo, scrollState, cache)

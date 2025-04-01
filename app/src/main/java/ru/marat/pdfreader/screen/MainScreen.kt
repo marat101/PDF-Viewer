@@ -107,7 +107,7 @@ fun MainScreen() {
                 .fillMaxWidth()
         ) {
             if (uri != null) {
-                val state = rememberReaderLayoutState(uri!!.toUri())
+                val state = rememberReaderLayoutState(10,uri!!.toUri())
                 Box(
                     modifier = Modifier.fillMaxSize()
                 ) {
