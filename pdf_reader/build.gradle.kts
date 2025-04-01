@@ -15,6 +15,14 @@ publishing {
             artifactId = "pdfviewer"
             version = "1.0.0-alpha"
 
+            signing {
+                useInMemoryPgpKeys(
+                    System.getenv("SIGNING_KEY_ID"),
+                    System.getenv("SIGNING_PASSWORD"),
+                    System.getenv("GPG_KEY_CONTENTS")
+                )
+            }
+
             pom {
                 name = "PdfViewer"
                 description = "Android PdfViewer library"
