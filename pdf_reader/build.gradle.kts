@@ -1,3 +1,4 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
@@ -54,6 +55,13 @@ dependencies {
 }
 
 mavenPublishing {
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            sourcesJar = true,
+        )
+    )
+
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
     signAllPublications()
