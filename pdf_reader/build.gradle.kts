@@ -1,3 +1,5 @@
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
@@ -5,63 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     id("maven-publish")
     id("signing")
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("release") {
-
-            groupId = "ru.marat"
-            artifactId = "pdfviewer"
-            version = "1.0.0-alpha"
-
-            signing {
-                useInMemoryPgpKeys(
-                    System.getenv("signingInMemoryKeyId"),
-                    System.getenv("signingInMemoryKey"),
-                    System.getenv("signingInMemoryKeyPassword")
-                )
-            }
-
-            pom {
-                name = "PdfViewer"
-                description = "Android PdfViewer library"
-                url = "https://github.com/marat101/PDF-Viewer"
-                licenses {
-                    license {
-                        name = "The Apache License, Version 2.0"
-                        url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-                        distribution = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-                    }
-                }
-                developers {
-                    developer {
-                        id.set("marat101")
-                        name.set("Marat")
-                        email.set("maratnv101@gmail.com")
-                    }
-                }
-                scm {
-                    url.set("https://github.com/marat101/PDF-Viewer")
-                    connection.set("scm:git:https://github.com/marat101/PDF-Viewer.git")
-                    developerConnection = "scm:git:ssh://git@github.com/marat101/PDF-Viewer.git"
-                }
-            }
-        }
-        repositories {
-            mavenCentral {
-                name = "MavenCentral"
-                credentials {
-                    username = System.getenv("MAVEN_CENTRAL_USERNAME")
-                    password = System.getenv("MAVEN_CENTRAL_PASSWORD")
-                }
-            }
-        }
-    }
-}
-
-signing {
-    sign(publishing.publications)
+    id("com.vanniktech.maven.publish") version "0.31.0-rc2"
 }
 
 android {
@@ -105,4 +51,35 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     debugImplementation(libs.androidx.ui.tooling)
+}
+
+mavenPublishing {
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+
+    signAllPublications()
+    coordinates("io.github.marat101", "pdf-viewer", "1.0.0-alpha")
+    pom {
+        name = "PdfViewer"
+        description = "Android PdfViewer library"
+        url = "https://github.com/marat101/PDF-Viewer"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+        }
+        developers {
+            developer {
+                id.set("marat101")
+                name.set("Marat")
+                email.set("maratnv101@gmail.com")
+            }
+        }
+        scm {
+            url.set("https://github.com/marat101/PDF-Viewer")
+            connection.set("scm:git:https://github.com/marat101/PDF-Viewer.git")
+            developerConnection = "scm:git:ssh://git@github.com/marat101/PDF-Viewer.git"
+        }
+    }
 }
