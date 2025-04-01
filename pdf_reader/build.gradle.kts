@@ -9,7 +9,7 @@ plugins {
 
 publishing {
     publications {
-        register<MavenPublication>("release") {
+        create<MavenPublication>("release") {
 
             groupId = "ru.marat"
             artifactId = "pdfviewer"
@@ -37,6 +37,16 @@ publishing {
                     url.set("https://github.com/marat101/PDF-Viewer")
                     connection.set("scm:git:https://github.com/marat101/PDF-Viewer.git")
                     developerConnection = "scm:git:ssh://git@github.com/marat101/PDF-Viewer.git"
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = "MavenCentral"
+                url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
+                credentials {
+                    username = System.getenv("MAVEN_CENTRAL_USERNAME")
+                    password = System.getenv("MAVEN_CENTRAL_PASSWORD")
                 }
             }
         }
