@@ -5,7 +5,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
-fun Modifier.readerGestures(
+internal fun Modifier.readerGestures(
     state: ReaderLayoutPositionState,
     onTap: () -> Unit
 ) = this.pointerInput(state) {

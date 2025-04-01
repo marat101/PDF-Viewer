@@ -98,7 +98,7 @@ private suspend inline fun closeIfNotActive(crossinline beforeCancel: () -> Unit
 }
 
 private fun createBitmap(width: Float, height: Float): Bitmap {
-    var intSize = IntSize(width.toInt(), height.toInt())
+    var intSize = IntSize(width.roundToInt(), height.roundToInt())
     val sizeInBytes = intSize.width * intSize.height * 4
     if (sizeInBytes > MAX_BITMAP_SIZE) {
         val scale = MAX_BITMAP_SIZE / sizeInBytes.toDouble()

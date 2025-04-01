@@ -25,11 +25,12 @@ data class LayoutInfo(
     val pagePositions: List<PagePosition> = emptyList(),
     val offset: Offset = Offset.Zero,
     val zoom: Float = 1f,
+    private val userZoomBounds: Bounds = Bounds(MIN_ZOOM, MAX_ZOOM),
 ) {
 
     companion object {
-        const val MIN_ZOOM = 0.5F
-        const val MAX_ZOOM = 100F
+        internal const val MIN_ZOOM = 0.5F
+        internal const val MAX_ZOOM = 100F
     }
 
     val fullHeight: Float get() = fullSize.height
@@ -79,7 +80,7 @@ data class LayoutInfo(
         }
 
 
-    fun drawPagesFragments() {
+    internal fun drawPagesFragments() {
         if (visiblePages.isEmpty()) return
         val scaledViewportSize = viewportSize * (1f / zoom)
         val layoutPosition = getLayoutPosition(scaledViewportSize)
@@ -94,7 +95,7 @@ data class LayoutInfo(
         }
     }
 
-    fun getLayoutPosition(
+    private fun getLayoutPosition(
         scaledViewportSize: Size = viewportSize * (1f / zoom)
     ): Rect {
         val vSize = scaledViewportSize
@@ -135,7 +136,7 @@ data class LayoutInfo(
             .translate(-rect.left, -rect.top)
     }
 
-    fun clearScaledFragments() {
+    internal fun clearScaledFragments() {
         pages.forEach { it.removeScale() }
     }
 
@@ -190,18 +191,16 @@ data class LayoutInfo(
     val zoomBounds by lazy(mode = LazyThreadSafetyMode.PUBLICATION) {
         if (viewportSize.isUnspecified) return@lazy Bounds(1f, 1f)
         val minZoom = maxOf(
-            MIN_ZOOM,
+            userZoomBounds.min,
             (if (isVertical) viewportSize.height / fullHeight else viewportSize.width / fullWidth)
                 .coerceAtMost(1f)
         )
 
-        Bounds(minZoom, MAX_ZOOM)
+        Bounds(minZoom, userZoomBounds.max)
     }
 
-    fun coerceToBounds() = this.copy(
+    internal fun coerceToBounds() = this.copy(
         zoom = zoom.setBounds(zoomBounds),
         offset = offset.setOffsetBounds(horizontalBounds, verticalBounds)
     )
 }
-
-fun Rect.toStringg() = "Rect(top=${top}f, bottom=${bottom}f, left=${left}f, right=${right}f)"

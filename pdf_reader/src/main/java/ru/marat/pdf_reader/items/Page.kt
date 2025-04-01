@@ -1,5 +1,6 @@
 package ru.marat.viewplayground.pdf_reader.reader.layout.items
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -15,7 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,7 +49,7 @@ class Page(
 
     private val scaledRect = MutableStateFlow<Rect?>(null)
 
-    val bitmap = isLoaded.flatMapLatest { loaded ->
+    internal val bitmap = isLoaded.flatMapLatest { loaded ->
         size.debounce {
             if (size.value == it) 0 else 300
         }.flatMapLatest { newLayoutSize ->
@@ -110,7 +110,7 @@ class Page(
         }
     }
 
-    internal suspend fun drawPageFragment(scale: Float, fragment: Rect): ScaledPage =
+    private suspend fun drawPageFragment(scale: Float, fragment: Rect): ScaledPage =
         kotlin.runCatching {
             pageRenderer.renderPageFragment(index, size.value.toRect(), fragment, scale)
         }.getOrElse {
@@ -140,24 +140,18 @@ class Page(
     }
 }
 
-class ScaledPage private constructor( // todo constructor // wtf is this
-    val rect: Rect,
-    val topLeft: Offset,
-    internal val bitmap: ImageBitmap,
-    val srcSize: IntSize = IntSize(bitmap.width, bitmap.height),
+@Immutable
+class ScaledPage(
+    pageSize: Rect,
+    scaledFragment: Rect,
+    internal val bitmap: ImageBitmap
+) {
+    val rect: Rect = scaledFragment
+    val topLeft: Offset = scaledFragment.topLeft - pageSize.topLeft
+    val srcSize: IntSize = IntSize(bitmap.width, bitmap.height)
     val dstSize: IntSize = IntSize(
         rect.size.width.roundToInt(),
         rect.size.height.roundToInt()
-    )
-) {
-    constructor(
-        pageSize: Rect,
-        scaledFragment: Rect,
-        bitmap: ImageBitmap
-    ) : this(
-        rect = scaledFragment,
-        topLeft = scaledFragment.topLeft - pageSize.topLeft,
-        bitmap = bitmap
     )
 }
 

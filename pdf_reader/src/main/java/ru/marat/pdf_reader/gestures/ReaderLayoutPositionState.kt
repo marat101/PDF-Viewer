@@ -25,9 +25,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
@@ -40,8 +40,10 @@ import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Stable
-class ReaderLayoutPositionState(
+class ReaderLayoutPositionState internal constructor(
     density: Density,
+    minZoom: Float,
+    maxZoom: Float,
     private var anchor: Anchor?,
     orientation: Orientation = Orientation.Vertical,
 ) {
@@ -52,20 +54,23 @@ class ReaderLayoutPositionState(
     private var decayAnimationY: Job? = null
     private val decayAnimSpec = SplineBasedFloatDecayAnimationSpec(density)
     private val zoomAnimSpec = spring<Float>(stiffness = 300f)
-
-    val layoutInfo = MutableStateFlow(
-        LayoutInfo(
-            orientation = orientation,
-        )
-    )
-
     private val velocityTracker = VelocityTracker()
 
-    fun onScroll(
+    private val _layoutInfo = MutableStateFlow(
+        LayoutInfo(
+            orientation = orientation,
+            userZoomBounds = Bounds(minZoom, maxZoom),
+        )
+    )
+    val layoutInfo: StateFlow<LayoutInfo>
+        get() = _layoutInfo
+
+
+    internal fun onScroll(
         panChange: Offset,
         timeMillis: Long
     ): Boolean {
-        val layoutInfo = layoutInfo.value
+        val layoutInfo = _layoutInfo.value
         val panChange = panChange / layoutInfo.zoom
         val newOffsetX =
             (layoutInfo.offsetX + panChange.x).setBounds(layoutInfo.horizontalBounds)
@@ -79,11 +84,11 @@ class ReaderLayoutPositionState(
         } else false
     }
 
-    fun onZoom(
+    internal fun onZoom(
         zoomChange: Float,
         centroid: Offset
     ) {
-        val layoutInfo = layoutInfo.value
+        val layoutInfo = _layoutInfo.value
         val newScale = (layoutInfo.zoom * zoomChange).setBounds(layoutInfo.zoomBounds)
         val zoomOffset =
             calculateZoomOffset(
@@ -99,18 +104,18 @@ class ReaderLayoutPositionState(
         val newOffset = (layoutInfo.offset + zoomOffset)
             .setOffsetBounds(target.horizontalBounds, target.verticalBounds)
 
-        this.layoutInfo.update {
+        this._layoutInfo.update {
             target.copy(
                 offset = newOffset
             )
         }
     }
 
-    fun onDoubleTap(
+    internal fun onDoubleTap(
         scope: CoroutineScope = this.scope,
         centroid: Offset
     ) {
-        val currentState = layoutInfo.value
+        val currentState = _layoutInfo.value
         var currentScale = currentState.zoom
         scope.launch {
             val newScale = when {
@@ -130,7 +135,7 @@ class ReaderLayoutPositionState(
                     value,
                     centroid
                 )
-                layoutInfo.update {
+                _layoutInfo.update {
                     it.copy(
                         zoom = value.setBounds(it.zoomBounds),
                         offset = (it.offset + offset).setOffsetBounds(
@@ -141,20 +146,20 @@ class ReaderLayoutPositionState(
                 }
                 currentScale = value
             }
-            layoutInfo.value.drawPagesFragments()
+            _layoutInfo.value.drawPagesFragments()
         }
 
     }
 
-    fun onGestureStart() {
+    internal fun onGestureStart() {
         cancelDecay()
     }
 
-    suspend fun onGestureEnd() {
+    internal suspend fun onGestureEnd() {
         coroutineScope {
             val velocity = velocityTracker.calculateVelocity()
             velocityTracker.resetTracking()
-            val layout = layoutInfo.value
+            val layout = _layoutInfo.value
             val initialValue = layout.offset
             decayAnimationY = launch {
                 animateDecay(
@@ -177,12 +182,12 @@ class ReaderLayoutPositionState(
             scope.launch {
                 decayAnimationX?.join()
                 decayAnimationY?.join()
-                layoutInfo.value.drawPagesFragments()
+                _layoutInfo.value.drawPagesFragments()
             }
         }
     }
 
-    fun calculatePositions(
+    internal fun calculatePositions(
         pages: List<Page>,
         viewportSize: Size,
         spacing: Float,
@@ -238,11 +243,11 @@ class ReaderLayoutPositionState(
         return Size(fullWidth, fullHeight) to positions
     }
 
-    fun updateViewportSize(
+    internal fun updateViewportSize(
         spacing: Float,
         viewportSize: Size
     ) {
-        val prevValue = layoutInfo.value
+        val prevValue = _layoutInfo.value
 
         val sizeChanged = prevValue.viewportSize != viewportSize
         val spacingChanged = prevValue.spacing != spacing
@@ -250,7 +255,7 @@ class ReaderLayoutPositionState(
             anchor != null || spacingChanged || sizeChanged || prevValue.pagePositions.isEmpty()
         if (!needUpdate) return
         cancelDecay()
-        if (sizeChanged || spacingChanged) {
+        if (sizeChanged) {
             prevValue.clearScaledFragments()
         }
         val (fullSize, positions) = calculatePositions(
@@ -259,14 +264,14 @@ class ReaderLayoutPositionState(
             spacing,
             prevValue.isVertical
         )
-        var targetValue = layoutInfo.value.copy(
+        var targetValue = _layoutInfo.value.copy(
             spacing = spacing,
             viewportSize = viewportSize,
             fullSize = fullSize,
             pagePositions = positions,
         )
 
-        layoutInfo.updateAndGet {
+        _layoutInfo.updateAndGet {
             if (anchor != null && targetValue.pagePositions.isNotEmpty()) {
                 val result = calculateNewOffsetWithAnchor(anchor!!, targetValue)
                 anchor = null
@@ -311,7 +316,7 @@ class ReaderLayoutPositionState(
         val newOffset = -fvPage.run { start + ((end - start) * restoreData.fraction) }
         return targetValue.copy(
             offset =
-                if (layoutInfo.value.isVertical)
+                if (_layoutInfo.value.isVertical)
                     targetValue.offset.copy(
                         y = newOffset.setBounds(targetValue.verticalBounds),
                         x = targetValue.offsetX.setBounds(targetValue.horizontalBounds)
@@ -325,7 +330,7 @@ class ReaderLayoutPositionState(
     }
 
     private fun setOffset(x: Float?, y: Float?): LayoutInfo {
-        return layoutInfo.updateAndGet {
+        return _layoutInfo.updateAndGet {
             it.copy(
                 offset = it.offset.copy(
                     x = x ?: it.offsetX,
@@ -337,8 +342,8 @@ class ReaderLayoutPositionState(
 
     fun scrollToPage(index: Int): Boolean {
         val page =
-            layoutInfo.value.pagePositions.fastFirstOrNull { it.index == index } ?: return false
-        layoutInfo.update {
+            _layoutInfo.value.pagePositions.fastFirstOrNull { it.index == index } ?: return false
+        _layoutInfo.update {
             it.copy(
                 offset =
                     if (it.isVertical) it.offset.copy(y = -page.start)
@@ -368,10 +373,13 @@ class ReaderLayoutPositionState(
         }
         return Offset(x = x, y = y)
     }
+    internal fun setPages(pages: List<Page>) {
+        _layoutInfo.update { it.copy(pages = pages) }
+    }
 
     fun setOrientation(orientation: Orientation) {
         cancelDecay()
-        layoutInfo.update {
+        _layoutInfo.update {
             if (it.orientation == orientation) return
             anchor = createAnchor(it)
             it.copy(orientation = orientation).coerceToBounds()
@@ -387,14 +395,26 @@ class ReaderLayoutPositionState(
 
 @Composable
 fun rememberReaderLayoutPositionState(
+    firstVisiblePageIndex: Int? = null,
+    minZoom: Float,
+    maxZoom: Float,
     vararg keys: Any?
 ): ReaderLayoutPositionState {
     val density = LocalDensity.current
     val k = remember(keys) { keys.toMutableList().apply { add(density) } }
     return rememberSaveable(
         inputs = k.toTypedArray(),
-        saver = ReaderLayoutPositionSaver(density)
+        saver = ReaderLayoutPositionSaver(
+            minZoom,
+            maxZoom,
+            density
+        )
     ) {
-        ReaderLayoutPositionState(density, null)
+        ReaderLayoutPositionState(
+            density,
+            minZoom,
+            maxZoom,
+            if (firstVisiblePageIndex != null) Anchor(firstVisiblePageIndex, 0f) else null
+        )
     }
 }
