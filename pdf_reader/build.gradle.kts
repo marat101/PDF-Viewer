@@ -16,8 +16,12 @@ android {
     compileSdk = 35
 
     publishing {
-        singleVariant("release") {
-            withSourcesJar()
+        publishing {
+            multipleVariants {
+                withSourcesJar()
+                withJavadocJar()
+                allVariants()
+            }
         }
     }
 
@@ -59,7 +63,6 @@ mavenPublishing {
         AndroidSingleVariantLibrary(
             variant = "release",
             sourcesJar = true,
-            publishJavadocJar = true
         )
     )
 
