@@ -1,4 +1,4 @@
-## Android PDF Viewer
+# Android PDF-Viewer
 
 Library for displaying PDF documents on Android. There are basic gestures for scrolling and zooming without loss of quality due to rendering fragments of pages that are visible on the screen. There are also horizontal and vertical layouts.
 
