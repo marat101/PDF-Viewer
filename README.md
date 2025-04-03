@@ -3,7 +3,8 @@
 Library for displaying PDF documents on Android. There are basic gestures for scrolling and zooming without loss of quality due to rendering fragments of pages that are visible on the screen. There are also horizontal and vertical layouts.
 
 ## Preview
-https://github.com/user-attachments/assets/b9466a94-9e0e-4dc3-9517-9e0956199a52
+<img src="https://github.com/user-attachments/assets/e3a3c920-020c-4d49-a289-8f8bac5d71aa" width="30%" alt="Preview">
+<img src="https://github.com/user-attachments/assets/5f59d782-2670-4c82-99df-46aaa2007ec0" width="30%" alt="Preview">
 
 ## Integration
 
