@@ -22,8 +22,6 @@ import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,7 +36,6 @@ import ru.marat.pdf_reader.utils.Anchor
 import ru.marat.pdf_reader.utils.createAnchor
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
 
-@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Stable
 class ReaderLayoutPositionState internal constructor(
     density: Density,
@@ -311,9 +308,10 @@ class ReaderLayoutPositionState internal constructor(
         restoreData: Anchor,
         targetValue: LayoutInfo
     ): LayoutInfo {
+        val firstVisiblePageIndex = restoreData.pageIndex.coerceAtMost(targetValue.pages.lastIndex)
         val fvPage =
-            targetValue.pagePositions.fastFirst { it.index == restoreData.previousFirstVisiblePage }
-        val newOffset = -fvPage.run { start + ((end - start) * restoreData.fraction) }
+            targetValue.pagePositions.fastFirst { it.index == firstVisiblePageIndex }
+        val newOffset = -fvPage.run { start + ((end - start) * restoreData.offsetFraction) }
         return targetValue.copy(
             offset =
                 if (_layoutInfo.value.isVertical)
@@ -386,6 +384,8 @@ class ReaderLayoutPositionState internal constructor(
         }
     }
 
+    fun getAnchor() = createAnchor(_layoutInfo.value)
+
     private fun cancelDecay() {
         decayAnimationX?.cancel()
         decayAnimationY?.cancel()
@@ -395,7 +395,7 @@ class ReaderLayoutPositionState internal constructor(
 
 @Composable
 fun rememberReaderLayoutPositionState(
-    firstVisiblePageIndex: Int? = null,
+    anchor: Anchor,
     minZoom: Float,
     maxZoom: Float,
     vararg keys: Any?
@@ -414,7 +414,7 @@ fun rememberReaderLayoutPositionState(
             density,
             minZoom,
             maxZoom,
-            if (firstVisiblePageIndex != null) Anchor(firstVisiblePageIndex, 0f) else null
+            anchor
         )
     }
 }

@@ -1,13 +1,15 @@
 package ru.marat.pdf_reader.utils
 
+import androidx.compose.runtime.Immutable
 import kotlinx.serialization.Serializable
 import ru.marat.pdf_reader.layout.state.LayoutInfo
 import kotlin.math.absoluteValue
 
+@Immutable
 @Serializable
 data class Anchor(
-    val previousFirstVisiblePage: Int,
-    val fraction: Float
+    val pageIndex: Int,
+    val offsetFraction: Float
 )
 
 
@@ -17,7 +19,7 @@ fun createAnchor(layoutInfo: LayoutInfo): Anchor? {
     val l = (if (layoutInfo.isVertical) layoutInfo.offsetY.absoluteValue
     else layoutInfo.offsetX.absoluteValue) - firstVisiblePage.start.absoluteValue
     return Anchor(
-        previousFirstVisiblePage = firstVisiblePage.index,
-        fraction = l / pageSize
+        pageIndex = firstVisiblePage.index,
+        offsetFraction = l / pageSize
     )
 }

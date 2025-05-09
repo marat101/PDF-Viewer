@@ -1,59 +1,27 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import com.vanniktech.maven.publish.SonatypeHost
+
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    id("maven-publish")
-    id("signing")
+    id("com.vanniktech.maven.publish") version "0.31.0-rc2"
 }
 
-publishing {
-    publications {
-        register<MavenPublication>("release") {
-
-            groupId = "ru.marat"
-            artifactId = "pdfviewer"
-            version = "1.0.0-alpha"
-
-            pom {
-                name = "PdfViewer"
-                description = "Android PdfViewer library"
-                url = "https://github.com/marat101/PDF-Viewer"
-                licenses {
-                    license {
-                        name = "The Apache License, Version 2.0"
-                        url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-                        distribution = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-                    }
-                }
-                developers {
-                    developer {
-                        id.set("marat101")
-                        name.set("Marat")
-                        email.set("maratnv101@gmail.com")
-                    }
-                }
-                scm {
-                    url.set("https://github.com/marat101/PDF-Viewer")
-                    connection.set("scm:git:https://github.com/marat101/PDF-Viewer.git")
-                    developerConnection = "scm:git:ssh://git@github.com/marat101/PDF-Viewer.git"
-                }
-            }
-        }
-    }
-}
-
-signing {
-    sign(publishing.publications)
-}
+val libVersion = "1.0.0-alpha"
 
 android {
     namespace = "ru.marat.pdfviewer"
     compileSdk = 35
 
     publishing {
-        singleVariant("release") {
-            withSourcesJar()
+        publishing {
+            multipleVariants {
+                withSourcesJar()
+                withJavadocJar()
+                allVariants()
+            }
         }
     }
 
@@ -88,4 +56,42 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     debugImplementation(libs.androidx.ui.tooling)
+}
+
+mavenPublishing {
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            sourcesJar = true,
+        )
+    )
+
+    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+
+    signAllPublications()
+    coordinates("io.github.marat101", "pdf-viewer", libVersion)
+    pom {
+        name = "PdfViewer"
+        description = "Android PdfViewer library"
+        url = "https://github.com/marat101/PDF-Viewer"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+            }
+        }
+        developers {
+            developer {
+                id.set("marat101")
+                name.set("Marat")
+                email.set("maratnv101@gmail.com")
+            }
+        }
+        scm {
+            url.set("https://github.com/marat101/PDF-Viewer")
+            connection.set("scm:git:https://github.com/marat101/PDF-Viewer.git")
+            developerConnection = "scm:git:ssh://git@github.com/marat101/PDF-Viewer.git"
+        }
+    }
 }
