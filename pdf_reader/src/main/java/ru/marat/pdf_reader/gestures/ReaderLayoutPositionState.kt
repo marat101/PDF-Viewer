@@ -381,7 +381,9 @@ class ReaderLayoutPositionState internal constructor(
         _layoutInfo.update {
             if (it.orientation == orientation) return
             anchor = createAnchor(it)
-            it.copy(orientation = orientation).coerceToBounds()
+            it.copy(orientation = orientation, zoom = 1f)
+                .coerceToBounds()
+                .also { it.clearScaledFragments() }
         }
     }
 
