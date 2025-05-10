@@ -26,8 +26,8 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.toIntSize
 import kotlinx.coroutines.Dispatchers
+import ru.marat.pdf_reader.utils.toIntSize
 
 val LocalPageColors = staticCompositionLocalOf { PageColors() }
 

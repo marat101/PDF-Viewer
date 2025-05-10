@@ -145,9 +145,9 @@ class ReaderLayoutPositionState internal constructor(
                 }
                 currentScale = value
             }
+            _layoutInfo.value.clearScaledFragments()
             _layoutInfo.value.drawPagesFragments()
         }
-
     }
 
     internal fun onGestureStart() {

@@ -11,7 +11,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.toIntRect
-import androidx.compose.ui.unit.toIntSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.items.PageLayoutHelper
 import ru.marat.pdf_reader.items.render.PageRenderer
+import ru.marat.pdf_reader.utils.toIntSize
 
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)

@@ -6,7 +6,6 @@ import android.graphics.pdf.PdfRenderer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
@@ -14,6 +13,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
 import ru.marat.pdf_reader.items.render.AndroidPageRenderer.Companion.MAX_BITMAP_SIZE
 import ru.marat.pdf_reader.utils.pdf_info.RendererScope
+import ru.marat.pdf_reader.utils.toIntSize
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.ScaledPage
 import kotlin.math.roundToInt
 

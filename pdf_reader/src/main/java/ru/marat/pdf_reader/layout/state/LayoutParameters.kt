@@ -9,7 +9,6 @@ import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.unit.IntRect
-import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastForEach
@@ -17,8 +16,8 @@ import ru.marat.pdf_reader.gestures.Bounds
 import ru.marat.pdf_reader.gestures.setBounds
 import ru.marat.pdf_reader.gestures.setOffsetBounds
 import ru.marat.pdf_reader.utils.toIntRect
+import ru.marat.pdf_reader.utils.toIntSize
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
-import ru.marat.viewplayground.pdf_reader.reader.layout.items.toIntOffset
 
 @Immutable
 data class LayoutInfo(
