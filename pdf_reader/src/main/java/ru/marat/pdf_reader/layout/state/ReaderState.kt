@@ -9,9 +9,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +20,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
@@ -28,6 +27,7 @@ import ru.marat.pdf_reader.gestures.rememberReaderLayoutPositionState
 import ru.marat.pdf_reader.items.PageLayoutHelper
 import ru.marat.pdf_reader.layout.saver.PageData
 import ru.marat.pdf_reader.layout.saver.ReaderSaver
+import ru.marat.pdf_reader.utils.Anchor
 import ru.marat.pdf_reader.utils.cache.PdfViewerCache
 import ru.marat.pdf_reader.utils.pdf_info.AndroidPdfInfoProvider
 import ru.marat.pdf_reader.utils.pdf_info.PdfInfo
@@ -50,9 +50,9 @@ class ReaderState internal constructor(
         override val parentLayoutInfo: StateFlow<LayoutInfo>
             get() = positionsState.layoutInfo
 
-        override fun getPageSizeByIndex(index: Int): Flow<Size> {
+        override fun getPageSizeByIndex(index: Int): Flow<IntSize> {
             return positionsState.layoutInfo.map {
-                it.pagePositions.getOrNull(index)?.rect?.size ?: Size.Unspecified
+                it.pagePositions.getOrNull(index)?.rect?.size ?: IntSize.Zero
             }
         }
 
@@ -116,12 +116,31 @@ data class PagePosition(
     val index: Int,
     val start: Float,
     val end: Float,
-    val rect: Rect,
+    val rect: IntRect,
 )
 
 @Composable
 fun rememberReaderLayoutState(
-    firstVisiblePageIndex: Int? = null,
+    initialPageIndex: Int = 0,
+    @FloatRange(from = 0.1, to = 1.0)
+    minZoom: Float = LayoutInfo.MIN_ZOOM,
+    @FloatRange(from = 1.0, to = LayoutInfo.MAX_ZOOM.toDouble())
+    maxZoom: Float = LayoutInfo.MAX_ZOOM,
+    uri: Uri,
+    enableCache: Boolean = true
+): ReaderState {
+    return rememberReaderLayoutState(
+        anchor = Anchor(initialPageIndex,0f),
+        minZoom = minZoom,
+        maxZoom = maxZoom,
+        uri = uri,
+        enableCache = enableCache
+    )
+}
+
+@Composable
+fun rememberReaderLayoutState(
+    anchor: Anchor,
     @FloatRange(from = 0.1, to = 1.0)
     minZoom: Float = LayoutInfo.MIN_ZOOM,
     @FloatRange(from = 1.0, to = LayoutInfo.MAX_ZOOM.toDouble())
@@ -135,7 +154,7 @@ fun rememberReaderLayoutState(
         if (enableCache) PdfViewerCache(context, uri.hashCode().toString()) else null
     }
     val scrollState =
-        rememberReaderLayoutPositionState(firstVisiblePageIndex, minZoom, maxZoom, pdfInfo, cache)
+        rememberReaderLayoutPositionState(anchor, minZoom, maxZoom, pdfInfo, cache)
     return rememberSaveable(
         inputs = arrayOf(pdfInfo, cache),
         saver = ReaderSaver(pdfInfo, scrollState, cache)

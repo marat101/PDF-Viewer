@@ -17,13 +17,12 @@ import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,9 +35,9 @@ import ru.marat.pdf_reader.layout.state.LayoutInfo
 import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.utils.Anchor
 import ru.marat.pdf_reader.utils.createAnchor
+import ru.marat.pdf_reader.utils.toIntRect
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
 
-@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @Stable
 class ReaderLayoutPositionState internal constructor(
     density: Density,
@@ -146,9 +145,9 @@ class ReaderLayoutPositionState internal constructor(
                 }
                 currentScale = value
             }
+            _layoutInfo.value.clearScaledFragments()
             _layoutInfo.value.drawPagesFragments()
         }
-
     }
 
     internal fun onGestureStart() {
@@ -203,11 +202,11 @@ class ReaderLayoutPositionState internal constructor(
                     index = it.index,
                     start = start,
                     end = end,
-                    rect = Rect(
-                        top = start,
-                        bottom = end,
-                        left = 0f,
-                        right = viewportSize.width
+                    rect = IntRect(
+                        top = start.toInt(),
+                        bottom = end.toInt(),
+                        left = 0,
+                        right = viewportSize.width.toInt()
                     )
                 )
                 fullHeight += (pos.end - pos.start) + if (it.index == pages.lastIndex) 0f else spacing
@@ -234,7 +233,7 @@ class ReaderLayoutPositionState internal constructor(
                     index = it.index,
                     start = fullWidth,
                     end = pageSize.right,
-                    rect = pageSize
+                    rect = pageSize.toIntRect()
                 )
                 fullWidth += (pos.end - pos.start) + if (it.index == pages.lastIndex) 0f else spacing
                 pos
@@ -270,7 +269,6 @@ class ReaderLayoutPositionState internal constructor(
             fullSize = fullSize,
             pagePositions = positions,
         )
-
         _layoutInfo.updateAndGet {
             if (anchor != null && targetValue.pagePositions.isNotEmpty()) {
                 val result = calculateNewOffsetWithAnchor(anchor!!, targetValue)
@@ -282,7 +280,7 @@ class ReaderLayoutPositionState internal constructor(
                 else calculateNewOffset(prevValue, targetValue)
             }.coerceToBounds()
         }.also {
-            it.drawPagesFragments()
+            if (sizeChanged) it.drawPagesFragments()
         }
     }
 
@@ -311,9 +309,10 @@ class ReaderLayoutPositionState internal constructor(
         restoreData: Anchor,
         targetValue: LayoutInfo
     ): LayoutInfo {
+        val firstVisiblePageIndex = restoreData.pageIndex.coerceAtMost(targetValue.pages.lastIndex)
         val fvPage =
-            targetValue.pagePositions.fastFirst { it.index == restoreData.previousFirstVisiblePage }
-        val newOffset = -fvPage.run { start + ((end - start) * restoreData.fraction) }
+            targetValue.pagePositions.fastFirst { it.index == firstVisiblePageIndex }
+        val newOffset = -fvPage.run { start + ((end - start) * restoreData.offsetFraction) }
         return targetValue.copy(
             offset =
                 if (_layoutInfo.value.isVertical)
@@ -382,9 +381,13 @@ class ReaderLayoutPositionState internal constructor(
         _layoutInfo.update {
             if (it.orientation == orientation) return
             anchor = createAnchor(it)
-            it.copy(orientation = orientation).coerceToBounds()
+            it.copy(orientation = orientation, zoom = 1f)
+                .coerceToBounds()
+                .also { it.clearScaledFragments() }
         }
     }
+
+    fun getAnchor() = createAnchor(_layoutInfo.value)
 
     private fun cancelDecay() {
         decayAnimationX?.cancel()
@@ -395,7 +398,7 @@ class ReaderLayoutPositionState internal constructor(
 
 @Composable
 fun rememberReaderLayoutPositionState(
-    firstVisiblePageIndex: Int? = null,
+    anchor: Anchor,
     minZoom: Float,
     maxZoom: Float,
     vararg keys: Any?
@@ -414,7 +417,7 @@ fun rememberReaderLayoutPositionState(
             density,
             minZoom,
             maxZoom,
-            if (firstVisiblePageIndex != null) Anchor(firstVisiblePageIndex, 0f) else null
+            anchor
         )
     }
 }

@@ -1,20 +1,20 @@
-package ru.marat.pdf_reader.utils.render
+package ru.marat.pdf_reader.items.render
 
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.ScaledPage
 
 interface PageRenderer {
 
     suspend fun renderPage(
         index: Int,
-        pageSize: Size,
+        pageSize: IntSize,
     ): ImageBitmap
     suspend fun renderPageFragment(
         index: Int,
-        pageSize: Rect,
-        scaledFragment: Rect,
+        pageSize: IntRect,
+        scaledFragment: IntRect,
         scale: Float,
     ): ScaledPage
 }

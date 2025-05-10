@@ -69,7 +69,7 @@ fun ReaderLayout(
                 constraints.maxHeight.toFloat()
             )
             scrollState.updateViewportSize(
-                spacing = (spacing.roundToPx() * (1f / layoutInfo.zoom)).coerceAtLeast(1f),
+                spacing = spacing.toPx(),
                 viewportSize = newViewportSize
             )
             items.fastForEach { (pos, placeables) ->
@@ -109,6 +109,6 @@ private fun Placeable.PlacementScope.horizontalLayoutPage(
 ) {
     placeable.placeRelative(
         pos.start.roundToInt(),
-        pos.rect.top.roundToInt()
+        pos.rect.top
     )
 }

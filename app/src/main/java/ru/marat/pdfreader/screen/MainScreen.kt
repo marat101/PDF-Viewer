@@ -45,6 +45,7 @@ import ru.marat.pdf_reader.layout.ReaderLayout
 import ru.marat.pdf_reader.layout.state.LayoutInfo
 import ru.marat.pdf_reader.layout.state.LoadingState
 import ru.marat.pdf_reader.layout.state.rememberReaderLayoutState
+import ru.marat.pdf_reader.utils.Anchor
 
 @Composable
 fun MainScreen() {
@@ -104,7 +105,7 @@ fun MainScreen() {
         ) {
             if (uri != null) {
                 val state = rememberReaderLayoutState(
-                    firstVisiblePageIndex = null,
+                    anchor = Anchor(0, 0.5f),
                     minZoom = 0.2f,
                     uri = uri!!.toUri()
                 )
@@ -135,7 +136,7 @@ fun MainScreen() {
                         ) {
                             CircularProgressIndicator(
                                 progress = {
-                                    (state.loadingState as LoadingState.Loading).progress
+                                    (state.loadingState as? LoadingState.Loading)?.progress ?: 0f
                                 }
                             )
                             Text(

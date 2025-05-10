@@ -1,6 +1,6 @@
 package ru.marat.pdf_reader.utils.pdf_info
 
-import ru.marat.pdf_reader.utils.render.PageRenderer
+import ru.marat.pdf_reader.items.render.PageRenderer
 
 interface PdfInfo {
 

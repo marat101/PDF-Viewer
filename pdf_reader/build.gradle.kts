@@ -6,10 +6,10 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    id("maven-publish")
-    id("signing")
-    id("com.vanniktech.maven.publish") version "0.31.0-rc2"
+    alias(libs.plugins.com.vanniktech.maven.publish)
 }
+
+val libVersion = "1.0.0-alpha"
 
 android {
     namespace = "ru.marat.pdfviewer"
@@ -45,12 +45,15 @@ android {
 }
 dependencies {
 
-    implementation(libs.kotlinx.serialization.json)
-
+    implementation(platform(libs.androidx.compose.bom)) {
+        version {
+            require("2024.01.00")
+        }
+    }
     implementation(libs.androidx.core.ktx)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
@@ -69,7 +72,7 @@ mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
     signAllPublications()
-    coordinates("io.github.marat101", "pdf-viewer", "1.0.0-alpha")
+    coordinates("io.github.marat101", "pdf-viewer", libVersion)
     pom {
         name = "PdfViewer"
         description = "Android PdfViewer library"

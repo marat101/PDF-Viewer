@@ -1,20 +1,20 @@
-package ru.marat.pdf_reader.utils.render
+package ru.marat.pdf_reader.items.render
 
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.pdf.PdfRenderer
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
+import ru.marat.pdf_reader.items.render.AndroidPageRenderer.Companion.MAX_BITMAP_SIZE
 import ru.marat.pdf_reader.utils.pdf_info.RendererScope
-import ru.marat.pdf_reader.utils.render.AndroidPageRenderer.Companion.MAX_BITMAP_SIZE
+import ru.marat.pdf_reader.utils.toIntSize
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.ScaledPage
-import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 class AndroidPageRenderer(
@@ -29,14 +29,14 @@ class AndroidPageRenderer(
 
     override suspend fun renderPage(
         index: Int,
-        pageSize: Size,
+        pageSize: IntSize,
     ) = coroutineScope {
         closeIfNotActive {}
         rendererScope.use { pdfRenderer ->
             val page =
                 runCatching { pdfRenderer.openPage(index) }.getOrElse { throw CancellationException() }
             closeIfNotActive { page.close() }
-            val bm: Bitmap = createBitmap(pageSize.width, pageSize.height)
+            val bm: Bitmap = createBitmap(pageSize.width.toFloat(), pageSize.height.toFloat())
             closeIfNotActive { page.close(); bm.recycle() }
             page.render(
                 bm,
@@ -51,22 +51,22 @@ class AndroidPageRenderer(
 
     override suspend fun renderPageFragment(
         index: Int,
-        pageSize: Rect,
-        scaledFragment: Rect,
+        pageSize: IntRect,
+        scaledFragment: IntRect,
         scale: Float,
     ): ScaledPage {
         return rendererScope.use { pdfRenderer ->
             val page = runCatching { pdfRenderer.openPage(index) }.getOrElse { throw CancellationException() }
             closeIfNotActive { page.close() }
 
-            val scaledSize = scaledFragment.size * scale
-            val bm: Bitmap = createBitmap(scaledSize.width, scaledSize.height)
+            val scaledSize = (scaledFragment.size.toSize() * scale).toIntSize()
+            val bm: Bitmap = createBitmap(scaledSize.width.toFloat(), scaledSize.height.toFloat())
 
-            val sx = (pageSize.width / page.width) * scale
-            val sy = (pageSize.height / page.height) * scale
+            val sx = (pageSize.width / page.width.toFloat()) * scale
+            val sy = (pageSize.height / page.height.toFloat()) * scale
             matrix.postScale(sx, sy)
-            val dx = (pageSize.left - scaledFragment.left) * scale
-            val dy = (pageSize.top - scaledFragment.top) * scale
+            val dx = (pageSize.left - scaledFragment.left.toFloat()) * scale
+            val dy = (pageSize.top - scaledFragment.top.toFloat()) * scale
             matrix.postTranslate(dx, dy)
 
             closeIfNotActive { page.close();bm.recycle(); matrix.reset() }
