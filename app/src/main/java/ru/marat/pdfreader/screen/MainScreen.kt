@@ -136,7 +136,7 @@ fun MainScreen() {
                         ) {
                             CircularProgressIndicator(
                                 progress = {
-                                    (state.loadingState as LoadingState.Loading).progress
+                                    (state.loadingState as? LoadingState.Loading)?.progress ?: 0f
                                 }
                             )
                             Text(
