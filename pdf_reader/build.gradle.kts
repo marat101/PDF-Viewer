@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.com.vanniktech.maven.publish)
 }
 
-val libVersion = "1.0.0-alpha"
+val libVersion = "1.0.0-alpha01"
 
 android {
     namespace = "ru.marat.pdfviewer"
