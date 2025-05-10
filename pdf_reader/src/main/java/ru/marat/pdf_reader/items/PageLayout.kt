@@ -1,6 +1,7 @@
 package ru.marat.viewplayground.pdf_reader.reader.layout.items
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -13,26 +14,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntSize
-import androidx.compose.ui.unit.toSize
 import kotlinx.coroutines.Dispatchers
-import kotlin.math.roundToInt
 
 val LocalPageColors = staticCompositionLocalOf { PageColors() }
 
@@ -45,10 +40,10 @@ fun PageLayout(
     val bitmap by page.bitmap.collectAsState(initial = null, Dispatchers.Main)
     val pageSize by page.size.collectAsState()
     val pageModifier = modifier
-        .drawBehind {
-            if (bitmap != null || colors.alwaysShowBackground)
-                drawRect(colors.backgroundColor)
-        }
+        .background(
+            if (bitmap != null || colors.alwaysShowBackground) colors.backgroundColor
+            else Color.Transparent
+        )
         .layoutId(page.index)
 
 
@@ -60,8 +55,7 @@ fun PageLayout(
                 modifier = Modifier.fillMaxSize(),
                 page = page,
                 bitmap = bitmap
-            )
-            else Box(modifier = Modifier.fillMaxSize()) {
+            ) else Box(modifier = Modifier.fillMaxSize()) {
                 CircularProgressIndicator(
                     modifier = Modifier
                         .size(35.dp)
@@ -71,16 +65,16 @@ fun PageLayout(
             }
         },
         measurePolicy = { measurables, constraints ->
-            if (pageSize.isUnspecified) return@Layout layout(0, 0) {}
+            if (pageSize == IntSize.Zero) return@Layout layout(0, 0) {}
             val placeables = measurables.map {
                 it.measure(
                     constraints.copy(
-                        maxHeight = pageSize.height.roundToInt(),
-                        maxWidth = pageSize.width.roundToInt()
+                        maxHeight = pageSize.height,
+                        maxWidth = pageSize.width
                     )
                 )
             }
-            layout(pageSize.width.roundToInt(), pageSize.height.roundToInt()) {
+            layout(pageSize.width, pageSize.height) {
                 placeables.forEach {
                     it.place(0, 0)
                 }
@@ -88,10 +82,8 @@ fun PageLayout(
         })
 
     DisposableEffect(key1 = Unit) {
-        println("PAGE ${page.index + 1}")
         page.onLoad()
         onDispose {
-            println("PAGE ${page.index + 1} DISPOSE")
             page.onDispose()
         }
     }
@@ -121,7 +113,7 @@ private fun PageImage(
     Image(
         modifier = modifier,
         painter = painter,
-        contentDescription = "Page with scaled fragment"
+        contentDescription = null
     )
 }
 
@@ -146,20 +138,15 @@ private class PageBitmapPainter(
 
             if (scaledFragment != null) {
                 translate(
-                    scaledFragment.topLeft.x,
-                    scaledFragment.topLeft.y
+                    scaledFragment.topLeft.x.toFloat(),
+                    scaledFragment.topLeft.y.toFloat()
                 ) {
                     drawImage(
                         image = scaledFragment.bitmap,
-                        srcSize = scaledFragment.srcSize,
                         dstSize = scaledFragment.dstSize,
-                        blendMode = BlendMode.Src
+                        blendMode = BlendMode.Src,
+//                        dstOffset = IntOffset(scaledFragment.rect.topLeft.x.toInt(),scaledFragment.rect.topLeft.y.toInt()),
                     )
-//                    drawRect(
-//                        color = Color.Yellow.copy(0.2f),
-// //                         style = Stroke((6).dp.toPx()),
-//                        size = scaledFragment.dstSize.toSize()
-//                    )
                 }
             }
             canvas.restoreToCount(checkpoint)

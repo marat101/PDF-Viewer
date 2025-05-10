@@ -8,12 +8,17 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
 import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.toIntSize
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastForEach
 import ru.marat.pdf_reader.gestures.Bounds
 import ru.marat.pdf_reader.gestures.setBounds
 import ru.marat.pdf_reader.gestures.setOffsetBounds
+import ru.marat.pdf_reader.utils.toIntRect
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
+import ru.marat.viewplayground.pdf_reader.reader.layout.items.toIntOffset
 
 @Immutable
 data class LayoutInfo(
@@ -82,8 +87,8 @@ data class LayoutInfo(
 
     internal fun drawPagesFragments() {
         if (visiblePages.isEmpty()) return
-        val scaledViewportSize = viewportSize * (1f / zoom)
-        val layoutPosition = getLayoutPosition(scaledViewportSize)
+        val scaledViewportSize = (viewportSize * (1f / zoom)).toIntSize()
+        val layoutPosition = getLayoutPosition(scaledViewportSize.toSize()).toIntRect()
         visiblePages.fastForEach { pos ->
             val fragment = if (isVertical)
                 pos.getVerticalLayoutFragment(layoutPosition)
@@ -91,7 +96,7 @@ data class LayoutInfo(
                 pos.getHorizontalLayoutFragment(layoutPosition)
             } ?: return@fastForEach
             val page = pages.fastFirst { it.index == pos.index }
-            page.setVisibleFragment(fragment)
+            page.setVisibleFragment(IntRect(fragment.topLeft, fragment.size))
         }
     }
 
@@ -121,16 +126,16 @@ data class LayoutInfo(
 
 
     private fun PagePosition.getVerticalLayoutFragment(
-        layoutPosition: Rect
-    ): Rect? {
+        layoutPosition: IntRect
+    ): IntRect? {
         return rect
             .intersect(layoutPosition)
-            .translate(0f, -rect.top)
+            .translate(0, -rect.top)
     }
 
     private fun PagePosition.getHorizontalLayoutFragment(
-        layoutPosition: Rect
-    ): Rect? {
+        layoutPosition: IntRect
+    ): IntRect? {
         return rect
             .intersect(layoutPosition)
             .translate(-rect.left, -rect.top)

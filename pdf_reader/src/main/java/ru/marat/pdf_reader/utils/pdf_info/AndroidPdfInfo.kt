@@ -5,8 +5,8 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import ru.marat.pdf_reader.utils.render.AndroidPageRenderer
-import ru.marat.pdf_reader.utils.render.PageRenderer
+import ru.marat.pdf_reader.items.render.AndroidPageRenderer
+import ru.marat.pdf_reader.items.render.PageRenderer
 
 class AndroidPdfInfo(
     private val renderer: RendererScope,

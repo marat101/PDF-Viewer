@@ -9,9 +9,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -50,9 +50,9 @@ class ReaderState internal constructor(
         override val parentLayoutInfo: StateFlow<LayoutInfo>
             get() = positionsState.layoutInfo
 
-        override fun getPageSizeByIndex(index: Int): Flow<Size> {
+        override fun getPageSizeByIndex(index: Int): Flow<IntSize> {
             return positionsState.layoutInfo.map {
-                it.pagePositions.getOrNull(index)?.rect?.size ?: Size.Unspecified
+                it.pagePositions.getOrNull(index)?.rect?.size ?: IntSize.Zero
             }
         }
 
@@ -116,7 +116,7 @@ data class PagePosition(
     val index: Int,
     val start: Float,
     val end: Float,
-    val rect: Rect,
+    val rect: IntRect,
 )
 
 @Composable

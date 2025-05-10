@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.isUnspecified
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.util.fastFirst
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastMap
@@ -34,6 +35,7 @@ import ru.marat.pdf_reader.layout.state.LayoutInfo
 import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.utils.Anchor
 import ru.marat.pdf_reader.utils.createAnchor
+import ru.marat.pdf_reader.utils.toIntRect
 import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
 
 @Stable
@@ -200,11 +202,11 @@ class ReaderLayoutPositionState internal constructor(
                     index = it.index,
                     start = start,
                     end = end,
-                    rect = Rect(
-                        top = start,
-                        bottom = end,
-                        left = 0f,
-                        right = viewportSize.width
+                    rect = IntRect(
+                        top = start.toInt(),
+                        bottom = end.toInt(),
+                        left = 0,
+                        right = viewportSize.width.toInt()
                     )
                 )
                 fullHeight += (pos.end - pos.start) + if (it.index == pages.lastIndex) 0f else spacing
@@ -231,7 +233,7 @@ class ReaderLayoutPositionState internal constructor(
                     index = it.index,
                     start = fullWidth,
                     end = pageSize.right,
-                    rect = pageSize
+                    rect = pageSize.toIntRect()
                 )
                 fullWidth += (pos.end - pos.start) + if (it.index == pages.lastIndex) 0f else spacing
                 pos
@@ -267,7 +269,6 @@ class ReaderLayoutPositionState internal constructor(
             fullSize = fullSize,
             pagePositions = positions,
         )
-
         _layoutInfo.updateAndGet {
             if (anchor != null && targetValue.pagePositions.isNotEmpty()) {
                 val result = calculateNewOffsetWithAnchor(anchor!!, targetValue)
@@ -279,7 +280,7 @@ class ReaderLayoutPositionState internal constructor(
                 else calculateNewOffset(prevValue, targetValue)
             }.coerceToBounds()
         }.also {
-            it.drawPagesFragments()
+            if (sizeChanged) it.drawPagesFragments()
         }
     }
 
