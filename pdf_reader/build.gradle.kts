@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    id("com.vanniktech.maven.publish") version "0.31.0-rc2"
+    alias(libs.plugins.com.vanniktech.maven.publish)
 }
 
 val libVersion = "1.0.0-alpha"
