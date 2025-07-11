@@ -10,7 +10,7 @@ Library for displaying PDF documents on Android. There are basic gestures for sc
 
 Add to build.gradle:
 ``` kotlin
-implementation("io.github.marat101:pdf-viewer:1.0.0-alpha")
+implementation("io.github.marat101:pdf-viewer:1.0.0-alpha01")
 ```
 ## Using
 ``` kotlin
