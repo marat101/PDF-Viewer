@@ -3,7 +3,7 @@ package ru.marat.pdf_reader.items.render
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
-import ru.marat.viewplayground.pdf_reader.reader.layout.items.ScaledPage
+import ru.marat.pdf_reader.items.ScaledPage
 
 interface PageRenderer {
 

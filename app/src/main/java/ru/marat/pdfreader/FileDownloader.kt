@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.logging.LogLevel
@@ -73,6 +74,7 @@ object FileDownloader {
             val uri = copyFileToDownloads(context, file)
             file.delete()
             uri
+//            file.toUri()
         }
 
     private fun copyFileToDownloads(context: Context, downloadedFile: File): Uri? {

@@ -165,7 +165,7 @@ private fun PdfDownloadDialog(
                         )
                     else CircularProgressIndicator(
                         progress = {
-                            progress!!
+                            progress ?: 0f
                         },
                     )
                 }

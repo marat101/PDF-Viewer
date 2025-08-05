@@ -36,7 +36,7 @@ import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.utils.Anchor
 import ru.marat.pdf_reader.utils.createAnchor
 import ru.marat.pdf_reader.utils.toIntRect
-import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
+import ru.marat.pdf_reader.items.Page
 
 @Stable
 class ReaderLayoutPositionState internal constructor(
@@ -220,7 +220,7 @@ class ReaderLayoutPositionState internal constructor(
                     width *= scale
                 }
                 val top = (viewportSize.height - height) / 2
-                var pageSize =
+                val pageSize =
                     Rect(
                         top = top,
                         left = fullWidth,
@@ -263,7 +263,7 @@ class ReaderLayoutPositionState internal constructor(
             spacing,
             prevValue.isVertical
         )
-        var targetValue = _layoutInfo.value.copy(
+        val targetValue = _layoutInfo.value.copy(
             spacing = spacing,
             viewportSize = viewportSize,
             fullSize = fullSize,

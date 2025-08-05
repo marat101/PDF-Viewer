@@ -1,6 +1,7 @@
 package ru.marat.pdf_reader.layout
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.lazy.layout.LazyLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -20,6 +21,7 @@ import androidx.compose.ui.util.fastForEach
 import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.Dispatchers
 import ru.marat.pdf_reader.gestures.readerGestures
+import ru.marat.pdf_reader.items.Page
 import ru.marat.pdf_reader.layout.state.PagePosition
 import ru.marat.pdf_reader.layout.state.ReaderState
 import kotlin.math.roundToInt
@@ -30,12 +32,13 @@ fun ReaderLayout(
     modifier: Modifier = Modifier,
     layoutState: ReaderState,
     spacing: Dp = 8.dp,
-    onTap: () -> Unit
+    onTap: () -> Unit = {},
+    itemsOverlay: @Composable BoxScope.(Page) -> Unit = {},
 ) {
     val scrollState by layoutState::positionsState
     val layoutInfo by scrollState.layoutInfo.collectAsState(Dispatchers.Main)
     val pages by remember { derivedStateOf { layoutInfo.pages } }
-    val itemProvider = rememberPagesItemProvider(pages)
+    val itemProvider = rememberPagesItemProvider(pages, itemsOverlay)
     LazyLayout(
         modifier = modifier
             .readerGestures(scrollState, onTap)

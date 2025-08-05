@@ -4,7 +4,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
-import ru.marat.viewplayground.pdf_reader.reader.layout.items.toIntOffset
+import ru.marat.pdf_reader.items.toIntOffset
 
 fun Rect.toIntRect() = IntRect(topLeft.toIntOffset(), bottomRight.toIntOffset())
 

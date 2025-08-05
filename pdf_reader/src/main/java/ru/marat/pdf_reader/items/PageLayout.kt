@@ -3,8 +3,10 @@ package ru.marat.viewplayground.pdf_reader.reader.layout.items
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -27,6 +29,9 @@ import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
+import ru.marat.pdf_reader.items.Page
+import ru.marat.pdf_reader.items.ScaledPage
+import ru.marat.pdf_reader.items.size
 import ru.marat.pdf_reader.utils.toIntSize
 
 val LocalPageColors = staticCompositionLocalOf { PageColors() }
@@ -34,6 +39,7 @@ val LocalPageColors = staticCompositionLocalOf { PageColors() }
 @Composable
 fun PageLayout(
     modifier: Modifier = Modifier,
+    overlay: @Composable BoxScope.(Page) -> Unit = {},
     page: Page
 ) {
     val colors = LocalPageColors.current
@@ -46,22 +52,16 @@ fun PageLayout(
         )
         .layoutId(page.index)
 
-
-
     Layout(
         modifier = pageModifier,
         content = {
-            if (bitmap != null) PageImage(
-                modifier = Modifier.fillMaxSize(),
-                page = page,
-                bitmap = bitmap
-            ) else Box(modifier = Modifier.fillMaxSize()) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(35.dp)
-                        .align(Alignment.Center),
-                    color = colors.progressIndicatorColor
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (bitmap != null) PageImage(
+                    modifier = Modifier.fillMaxSize(),
+                    page = page,
+                    bitmap = bitmap
                 )
+                overlay(page)
             }
         },
         measurePolicy = { measurables, constraints ->

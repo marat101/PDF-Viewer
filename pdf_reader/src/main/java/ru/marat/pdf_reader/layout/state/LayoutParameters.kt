@@ -17,7 +17,7 @@ import ru.marat.pdf_reader.gestures.setBounds
 import ru.marat.pdf_reader.gestures.setOffsetBounds
 import ru.marat.pdf_reader.utils.toIntRect
 import ru.marat.pdf_reader.utils.toIntSize
-import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
+import ru.marat.pdf_reader.items.Page
 
 @Immutable
 data class LayoutInfo(

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -22,6 +23,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +41,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.net.toUri
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import ru.marat.pdf_reader.layout.ReaderLayout
@@ -46,7 +50,9 @@ import ru.marat.pdf_reader.layout.state.LayoutInfo
 import ru.marat.pdf_reader.layout.state.LoadingState
 import ru.marat.pdf_reader.layout.state.rememberReaderLayoutState
 import ru.marat.pdf_reader.utils.Anchor
+import ru.marat.pdf_reader.utils.cache.CacheKey
 
+@OptIn(DelicateCoroutinesApi::class)
 @Composable
 fun MainScreen() {
     var uri by rememberSaveable {
@@ -107,7 +113,8 @@ fun MainScreen() {
                 val state = rememberReaderLayoutState(
                     anchor = Anchor(0, 0.5f),
                     minZoom = 0.2f,
-                    uri = uri!!.toUri()
+                    uri = uri!!.toUri(),
+                    cacheKey = CacheKey(uri!!.hashCode().toString())
                 )
                 Box(
                     modifier = Modifier.fillMaxSize()
@@ -128,7 +135,16 @@ fun MainScreen() {
                         spacing = 6.dp,
                         layoutState = state,
                         onTap = { visible = !visible }
-                    )
+                    ) { page ->
+                        val bm by page.loadingState.collectAsState()
+                        if (bm.isLoading)
+                            CircularProgressIndicator(
+                                modifier = Modifier
+                                    .size(35.dp)
+                                    .align(Alignment.Center),
+                                color = Color.Black
+                            )
+                    }
                     if (state.loadingState is LoadingState.Loading)
                         Column(
                             modifier = Modifier.align(Alignment.Center),
@@ -145,7 +161,11 @@ fun MainScreen() {
                             )
                         }
                     Button(
-                        onClick = { state.pdfViewerCache?.clear() }
+                        onClick = {
+                            GlobalScope.launch {
+                                state.pdfViewerCache?.clear()
+                            }
+                        }
                     ) {
                         Text("clear cache")
                     }
@@ -168,7 +188,6 @@ fun MainScreen() {
                             zoom = it.zoom
                         }
                     }
-                    var a = false
                     launch {
                         snapshotFlow { orientation }.collectLatest {
                             state.positionsState.setOrientation(if (orientation) Orientation.Vertical else Orientation.Horizontal)

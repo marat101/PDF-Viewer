@@ -13,7 +13,7 @@ val libVersion = "1.0.0-alpha01"
 
 android {
     namespace = "ru.marat.pdfviewer"
-    compileSdk = 35
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     publishing {
         publishing {
@@ -26,10 +26,10 @@ android {
     }
 
     defaultConfig {
-        minSdk = 24
+        minSdk = libs.versions.minSdk.get().toInt()
     }
     lint {
-        targetSdk = 35
+        targetSdk = libs.versions.targetSdk.get().toInt()
     }
 
     compileOptions {
@@ -51,14 +51,14 @@ dependencies {
         }
     }
     implementation(libs.androidx.core.ktx)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     debugImplementation(libs.androidx.ui.tooling)
+
+    implementation(libs.kotlinx.serialization.json)
 }
 
 mavenPublishing {

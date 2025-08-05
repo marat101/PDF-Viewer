@@ -1,12 +1,10 @@
-package ru.marat.viewplayground.pdf_reader.reader.layout.items
+package ru.marat.pdf_reader.items
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
@@ -23,10 +21,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import ru.marat.pdf_reader.items.PageLayoutHelper
 import ru.marat.pdf_reader.items.render.PageRenderer
 import ru.marat.pdf_reader.utils.toIntSize
 
@@ -60,14 +58,16 @@ class Page(
                 }
 
                 val savedBitmap = withContext(Dispatchers.IO) {
-                    layoutHelper.cache?.getPage(index)?.asImageBitmap()
+                    layoutHelper.cache?.getPage(index)
                 }
                 emit(savedBitmap)
                 if (savedBitmap?.size()?.toIntSize() == newLayoutSize) return@flow
                 val bm = drawPage(newLayoutSize)
                 emit(bm)
-                bm?.asAndroidBitmap()?.let {
-                    withContext(Dispatchers.IO) { layoutHelper.cache?.savePage(index, it) }
+                bm?.let {
+                    withContext(Dispatchers.IO) {
+                        layoutHelper.cache?.savePage(index, it)
+                    }
                 }
             }
         }
@@ -97,13 +97,17 @@ class Page(
         }
     }.stateIn(scope, SharingStarted.WhileSubscribed(3000), null)
 
+    val loadingState: StateFlow<LoadingState> = bitmap.mapLatest { bm ->
+        if (bm == null) LoadingState.Loading else LoadingState.Success
+    }.stateIn(scope, SharingStarted.WhileSubscribed(3000), LoadingState.Loading)
+
     private suspend fun drawPage(newSize: IntSize): ImageBitmap? {
-        return kotlin.runCatching {
-            var bm: ImageBitmap = pageRenderer.renderPage(
+        return runCatching {
+            if (newSize.height <= 0 || newSize.width <= 0) return@runCatching null
+            pageRenderer.renderPage(
                 index = index,
                 pageSize = newSize
             )
-            bm
         }.getOrElse {
             it.printStackTrace()
             throw it
@@ -111,7 +115,7 @@ class Page(
     }
 
     private suspend fun drawPageFragment(scale: Float, fragment: IntRect): ScaledPage =
-        kotlin.runCatching {
+        runCatching {
             pageRenderer.renderPageFragment(index, size.value.toIntRect(), fragment, scale)
         }.getOrElse {
             it.printStackTrace()
@@ -137,6 +141,14 @@ class Page(
             scaledRect.emit(null)
             isLoaded.emit(false)
         }
+    }
+
+    enum class LoadingState {
+        Loading,
+        Success;
+
+        val isLoading
+            get() = this == Loading
     }
 }
 

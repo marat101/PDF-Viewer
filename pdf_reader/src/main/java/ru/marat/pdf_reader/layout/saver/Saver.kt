@@ -9,9 +9,9 @@ import kotlinx.serialization.json.Json
 import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
 import ru.marat.pdf_reader.layout.state.ReaderState
 import ru.marat.pdf_reader.utils.Anchor
-import ru.marat.pdf_reader.utils.cache.PdfViewerCache
+import ru.marat.pdf_reader.utils.cache.PDFViewerCache
 import ru.marat.pdf_reader.utils.createAnchor
-import ru.marat.pdf_reader.utils.pdf_info.PdfInfoProvider
+import ru.marat.pdf_reader.utils.pdf_info.PdfInfoFactory
 
 
 class ReaderLayoutPositionSaver(
@@ -47,16 +47,16 @@ class ReaderLayoutPositionSaver(
 }
 
 internal class ReaderSaver(
-    private val provider: PdfInfoProvider,
+    private val provider: PdfInfoFactory,
     private val scrollState: ReaderLayoutPositionState,
-    private val cache: PdfViewerCache?
+    private val cache: PDFViewerCache?
 ) : Saver<ReaderState, List<String>> {
     override fun restore(value: List<String>): ReaderState {
         val value = value.map { Json.decodeFromString(PageData.serializer(), it) }
         return ReaderState(
             pdfViewerCache = cache,
             positionsState = scrollState,
-            pdfInfoProvider = provider,
+            pdfInfoFactory = provider,
             savedPages = value.ifEmpty { null },
         )
     }

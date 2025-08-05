@@ -6,16 +6,20 @@ plugins {
 
 android {
     namespace = "ru.marat.pdfreader"
-    compileSdk = 35
+    compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "ru.marat.pdfreader"
-        minSdk = 24
-        targetSdk = 35
+        minSdk = libs.versions.minSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    lint {
+        targetSdk = libs.versions.targetSdk.get().toInt()
+        disable += "NullSafeMutableLiveData"
     }
 
     buildTypes {

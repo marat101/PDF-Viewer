@@ -3,6 +3,9 @@ package ru.marat.pdf_reader.utils.pdf_info
 import android.content.Context
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.items.render.AndroidPageRenderer
@@ -38,9 +41,15 @@ class AndroidPdfInfo(
     }
 }
 
-class AndroidPdfInfoProvider(
+class AndroidPdfInfoFactory(
     private val context: Context,
     private val uri: Uri
-) : PdfInfoProvider {
-    override suspend fun get(): PdfInfo = AndroidPdfInfo.create(context, uri)
+) : PdfInfoFactory {
+    override suspend fun create(): PdfInfo = AndroidPdfInfo.create(context, uri)
+}
+
+@Composable
+fun rememberPdfInfoFactory(uri: Uri): PdfInfoFactory {
+    val context = LocalContext.current
+    return remember(uri, context) { AndroidPdfInfoFactory(context, uri) }
 }

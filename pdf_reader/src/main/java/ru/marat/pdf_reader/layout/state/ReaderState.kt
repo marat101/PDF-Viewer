@@ -6,16 +6,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.util.fastMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,27 +23,29 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.marat.pdf_reader.gestures.ReaderLayoutPositionState
 import ru.marat.pdf_reader.gestures.rememberReaderLayoutPositionState
+import ru.marat.pdf_reader.items.Page
 import ru.marat.pdf_reader.items.PageLayoutHelper
 import ru.marat.pdf_reader.layout.saver.PageData
 import ru.marat.pdf_reader.layout.saver.ReaderSaver
 import ru.marat.pdf_reader.utils.Anchor
-import ru.marat.pdf_reader.utils.cache.PdfViewerCache
-import ru.marat.pdf_reader.utils.pdf_info.AndroidPdfInfoProvider
+import ru.marat.pdf_reader.utils.cache.CacheKey
+import ru.marat.pdf_reader.utils.cache.PDFViewerCache
+import ru.marat.pdf_reader.utils.cache.rememberCache
 import ru.marat.pdf_reader.utils.pdf_info.PdfInfo
-import ru.marat.pdf_reader.utils.pdf_info.PdfInfoProvider
-import ru.marat.viewplayground.pdf_reader.reader.layout.items.Page
+import ru.marat.pdf_reader.utils.pdf_info.PdfInfoFactory
+import ru.marat.pdf_reader.utils.pdf_info.rememberPdfInfoFactory
 
 @Stable
 class ReaderState internal constructor(
-    val pdfViewerCache: PdfViewerCache? = null,
+    val pdfViewerCache: PDFViewerCache? = null,
     val positionsState: ReaderLayoutPositionState,
-    pdfInfoProvider: PdfInfoProvider,
+    pdfInfoFactory: PdfInfoFactory,
     savedPages: List<PageData>? = null
 ) {
 
     private var pdfInfo: PdfInfo? = null
     private val pageLayoutHelper = object : PageLayoutHelper {
-        override val cache: PdfViewerCache?
+        override val cache: PDFViewerCache?
             get() = pdfViewerCache
 
         override val parentLayoutInfo: StateFlow<LayoutInfo>
@@ -72,35 +73,32 @@ class ReaderState internal constructor(
 
     init {
         scope.launch {
-            pdfInfo = pdfInfoProvider.get()
+            pdfInfo = pdfInfoFactory.create()
             var counter = 0
-            val savedPages = savedPages ?: pdfViewerCache?.loadBoundaries()
-            val p = savedPages?.fastMap {
-                Page(
-                    layoutHelper = pageLayoutHelper,
-                    pageRenderer = pdfInfo!!.pageRenderer,
-                    ratio = it.ratio,
-                    index = it.index
-                )
-            } ?: List(pageCount) { index ->
+            val boundaries = savedPages ?: pdfViewerCache?.getBoundaries()
+            ?: awaitAll(*Array(pageCount) { index ->
                 async {
+                    val data = PageData(
+                        ratio = pdfInfo!!.getPageAspectRatio(index),
+                        index = index
+                    )
+                    launch(Dispatchers.Main) {
+                        counter++
+                        loadingState = LoadingState.Loading(counter.toFloat() / pageCount.toFloat())
+                    }
+                    data
+                }
+            })
+            pdfViewerCache?.saveBoundaries(boundaries)
+            withContext(Dispatchers.Main) {
+                positionsState.setPages(boundaries.fastMap {
                     Page(
                         layoutHelper = pageLayoutHelper,
                         pageRenderer = pdfInfo!!.pageRenderer,
-                        ratio = pdfInfo!!.getPageAspectRatio(index),
-                        index = index
-                    ).apply {
-                        counter++
-                        withContext(Dispatchers.Main.immediate) {
-                            loadingState =
-                                LoadingState.Loading(counter.toFloat() / pageCount.toFloat())
-                        }
-                    }
-                }
-            }.fastMap { it.await() }
-            pdfViewerCache?.saveBoundaries(p)
-            withContext(Dispatchers.Main.immediate) {
-                positionsState.setPages(p)
+                        ratio = it.ratio,
+                        index = it.index
+                    )
+                })
                 loadingState = LoadingState.Ready
             }
         }
@@ -127,14 +125,14 @@ fun rememberReaderLayoutState(
     @FloatRange(from = 1.0, to = LayoutInfo.MAX_ZOOM.toDouble())
     maxZoom: Float = LayoutInfo.MAX_ZOOM,
     uri: Uri,
-    enableCache: Boolean = true
+    cacheKey: CacheKey? = null
 ): ReaderState {
     return rememberReaderLayoutState(
-        anchor = Anchor(initialPageIndex,0f),
+        anchor = Anchor(initialPageIndex, 0f),
         minZoom = minZoom,
         maxZoom = maxZoom,
         uri = uri,
-        enableCache = enableCache
+        cacheKey = cacheKey
     )
 }
 
@@ -146,13 +144,10 @@ fun rememberReaderLayoutState(
     @FloatRange(from = 1.0, to = LayoutInfo.MAX_ZOOM.toDouble())
     maxZoom: Float = LayoutInfo.MAX_ZOOM,
     uri: Uri,
-    enableCache: Boolean = true
+    cacheKey: CacheKey? = null
 ): ReaderState {
-    val context = LocalContext.current
-    val pdfInfo = remember(uri, context) { AndroidPdfInfoProvider(context, uri) }
-    val cache = remember(uri, enableCache) {
-        if (enableCache) PdfViewerCache(context, uri.hashCode().toString()) else null
-    }
+    val pdfInfo = rememberPdfInfoFactory(uri)
+    val cache = rememberCache(cacheKey)
     val scrollState =
         rememberReaderLayoutPositionState(anchor, minZoom, maxZoom, pdfInfo, cache)
     return rememberSaveable(
@@ -162,7 +157,7 @@ fun rememberReaderLayoutState(
         ReaderState(
             pdfViewerCache = cache,
             positionsState = scrollState,
-            pdfInfoProvider = pdfInfo,
+            pdfInfoFactory = pdfInfo,
         )
     }
 }
